@@ -1,0 +1,35 @@
+{
+  "skill_name": "memos-skill",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮我在 memos 中创建一条笔记，内容是：今天学习了 Docker 容器化技术，很有收获 #学习 #技术",
+      "expected_output": "成功创建的备忘录对象，包含正确的 content、自动提取的 tags 字段（应包含'学习'和'技术'）",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "查看我最近创建的备忘录，按时间倒序排列",
+      "expected_output": "备忘录列表，按 display_time 倒序排列",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "搜索所有带有'工作'标签的备忘录",
+      "expected_output": "包含'工作'标签的所有备忘录列表",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "将 ID 为 abc-123 的备忘录置顶",
+      "expected_output": "更新后的备忘录对象，pinned 字段为 true",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "创建一条公开可见的备忘录：分享一个好用的 Python 库 requests #Python #分享",
+      "expected_output": "创建的备忘录对象，visibility 为 PUBLIC",
+      "files": []
+    }
+  ]
+}
