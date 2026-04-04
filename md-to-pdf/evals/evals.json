@@ -1,0 +1,53 @@
+{
+  "skill_name": "md-to-pdf",
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "basic-conversion",
+      "prompt": "帮我把 /home/wuyu/workspace/WSL_安装指南.md 转换为 PDF 文件",
+      "expected_output": "生成一个格式良好的 PDF 文档，包含原始 Markdown 的所有内容",
+      "files": ["/home/wuyu/workspace/WSL_安装指南.md"],
+      "assertions": [
+        {
+          "type": "file_exists",
+          "path": "WSL_安装指南.pdf",
+          "description": "PDF 文件应成功生成"
+        },
+        {
+          "type": "file_size",
+          "path": "WSL_安装指南.pdf",
+          "min_size": 1000,
+          "description": "PDF 文件大小应大于 1KB"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "eval_name": "chinese-content",
+      "prompt": "帮我把这个中文 Markdown 文件转换为 PDF：/home/wuyu/workspace/WSL_安装指南.md",
+      "expected_output": "PDF 文件应正确显示中文字符，不出现乱码或方框",
+      "files": ["/home/wuyu/workspace/WSL_安装指南.md"],
+      "assertions": [
+        {
+          "type": "file_exists",
+          "path": "WSL_安装指南.pdf",
+          "description": "PDF 文件应成功生成"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "eval_name": "custom-output-name",
+      "prompt": "帮我把 /home/wuyu/workspace/WSL_安装指南.md 转换成 PDF，输出文件名叫 WSL_Guide.pdf",
+      "expected_output": "应生成名为 WSL_Guide.pdf 的文件",
+      "files": ["/home/wuyu/workspace/WSL_安装指南.md"],
+      "assertions": [
+        {
+          "type": "file_exists",
+          "path": "WSL_Guide.pdf",
+          "description": "应生成指定名称的 PDF 文件"
+        }
+      ]
+    }
+  ]
+}
