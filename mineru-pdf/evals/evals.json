@@ -1,0 +1,141 @@
+{
+  "skill_name": "mineru-pdf",
+  "evals": [
+    {
+      "id": 1,
+      "name": "url-parsing-basic",
+      "prompt": "帮我解析这个 PDF 文件：https://cdn-mineru.openxlab.org.cn/demo/example.pdf，保存为 Markdown 格式",
+      "expected_output": "成功创建解析任务，轮询等待完成后下载并解压结果，提取 full.md 保存到本地",
+      "files": [],
+      "assertions": [
+        {
+          "type": "file_exists",
+          "path": "./example.md",
+          "description": "生成的 Markdown 文件存在"
+        },
+        {
+          "type": "file_not_empty",
+          "path": "./example.md",
+          "description": "Markdown 文件不为空"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "local-file-parsing",
+      "prompt": "使用 MinerU 解析我本地的 document.pdf 文件，启用 OCR 识别，输出到 ./output 目录",
+      "expected_output": "上传本地文件，创建解析任务，完成后保存 Markdown 到指定目录",
+      "files": ["test_files/document.pdf"],
+      "assertions": [
+        {
+          "type": "file_exists",
+          "path": "./output/document.md",
+          "description": "输出目录中的 Markdown 文件存在"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "batch-url-parsing",
+      "prompt": "批量解析这些 PDF 链接：urls.txt 文件中有 3 个 URL，使用 vlm 模型",
+      "expected_output": "创建批量解析任务，同时处理多个文件，分别保存结果",
+      "files": ["test_files/urls.txt"],
+      "assertions": [
+        {
+          "type": "file_count",
+          "path": "./batch_output",
+          "pattern": "*.md",
+          "min_count": 3,
+          "description": "至少生成 3 个 Markdown 文件"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "agent-lightweight-url",
+      "prompt": "用 Agent 轻量模式解析这个小 PDF：https://example.com/small.pdf",
+      "expected_output": "使用免登录的轻量 API 解析，返回 Markdown 下载链接并保存",
+      "files": [],
+      "assertions": [
+        {
+          "type": "file_exists",
+          "path": "./small.md",
+          "description": "生成的 Markdown 文件存在"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "formula-and-table-recognition",
+      "prompt": "解析这篇学术论文 https://example.com/paper.pdf，需要识别公式和表格，使用英文语言模型",
+      "expected_output": "启用公式和表格识别，使用 vlm 模型，输出包含 LaTeX 公式和 Markdown 表格",
+      "files": [],
+      "assertions": [
+        {
+          "type": "file_contains",
+          "path": "./paper.md",
+          "content": "$",
+          "description": "Markdown 中包含 LaTeX 公式标记"
+        },
+        {
+          "type": "file_contains",
+          "path": "./paper.md",
+          "content": "|",
+          "description": "Markdown 中包含表格标记"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "page-range-selection",
+      "prompt": "只解析这个 PDF 的前 10 页：https://example.com/book.pdf，保存为 book_preview.md",
+      "expected_output": "使用 page_ranges 参数指定 1-10 页，只解析指定范围",
+      "files": [],
+      "assertions": [
+        {
+          "type": "file_exists",
+          "path": "./book_preview.md",
+          "description": "生成的预览 Markdown 文件存在"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "error-handling-missing-token",
+      "prompt": "在没有设置 MINERU_TOKEN 环境变量的情况下尝试解析 PDF",
+      "expected_output": "正确检测缺失的 Token，给出清晰的错误提示和解决方案",
+      "files": [],
+      "assertions": [
+        {
+          "type": "exit_code",
+          "value": 1,
+          "description": "程序以错误码 1 退出"
+        },
+        {
+          "type": "stderr_contains",
+          "content": "MINERU_TOKEN",
+          "description": "错误信息提示 Token 环境变量"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "multi-format-export",
+      "prompt": "解析 document.pdf 并同时导出为 docx 和 html 格式",
+      "expected_output": "使用 extra_formats 参数，同时生成 Markdown、JSON、DOCX 和 HTML",
+      "files": [],
+      "assertions": [
+        {
+          "type": "file_exists",
+          "path": "./document.md",
+          "description": "Markdown 文件存在"
+        },
+        {
+          "type": "file_exists",
+          "path": "./document_extracted/*.docx",
+          "description": "DOCX 文件存在"
+        }
+      ]
+    }
+  ]
+}
