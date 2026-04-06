@@ -1,0 +1,262 @@
+/*
+ * Code Highlight Template for md2pdf
+ * Enhanced version with Pygments syntax highlighting
+ * Optimized for technical documentation and code-heavy documents
+ */
+
+@page {
+    margin: 2cm;
+    size: A4;
+    @bottom-center {
+        content: counter(page);
+        font-family: "SF Mono", Monaco, Consolas, monospace;
+        font-size: 9pt;
+        color: #666;
+    }
+}
+
+body {
+    font-family: "Bitstream Vera Serif", "Liberation Serif", Georgia, serif;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #333;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+    font-family: "Bitstream Vera Sans", "Liberation Sans", Helvetica, Arial, sans-serif;
+    color: #2c3e50;
+    margin-top: 1.8em;
+    margin-bottom: 0.6em;
+    line-height: 1.2;
+}
+
+h1 {
+    font-size: 2em;
+    border-bottom: 2px solid #2980b9;
+    padding-bottom: 0.3em;
+    margin-top: 0;
+}
+
+h2 {
+    font-size: 1.5em;
+    border-bottom: 1px solid #bdc3c7;
+    padding-bottom: 0.2em;
+}
+
+h3 {
+    font-size: 1.25em;
+    color: #34495e;
+}
+
+h4 {
+    font-size: 1.1em;
+}
+
+p {
+    margin: 0.8em 0;
+    text-align: justify;
+}
+
+/* Lists */
+ul, ol {
+    margin: 0.8em 0;
+    padding-left: 2em;
+}
+
+li {
+    margin: 0.3em 0;
+}
+
+/* Links */
+a {
+    color: #2980b9;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Inline code */
+code {
+    font-family: "SF Mono", "Monaco", "Consolas", "Liberation Mono", monospace;
+    background-color: #f4f4f4;
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-size: 0.9em;
+    color: #c7254e;
+}
+
+/* Code blocks - Enhanced */
+pre {
+    background-color: #263238;
+    border: 1px solid #37474f;
+    border-radius: 6px;
+    padding: 1em;
+    overflow-x: auto;
+    margin: 1em 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.85em;
+    line-height: 1.5;
+    color: #aed581;
+    font-family: "SF Mono", "Monaco", "Consolas", "Liberation Mono", monospace;
+}
+
+/* Pygments-like Syntax Highlighting */
+.codehilite, .highlight {
+    background: #263238;
+    border-radius: 6px;
+}
+
+/* Comments */
+.c, .cm, .c1, .cp, .cs {
+    color: #546e7a;
+    font-style: italic;
+}
+
+/* Keywords */
+.k, .kc, .kd, .kn, .kp, .kr, .kt {
+    color: #c792ea;
+    font-weight: bold;
+}
+
+/* Strings */
+.s, .sb, .sc, .sd, .s2, .se, .sh, .si, .sx, .s1, .ss {
+    color: #c3e88d;
+}
+
+/* Numbers */
+.m, .mf, .mh, .mi, .mo, .il {
+    color: #f78c6c;
+}
+
+/* Functions */
+.nf, .na {
+    color: #82aaff;
+}
+
+/* Classes */
+.nc, .nn {
+    color: #ffcb6b;
+}
+
+/* Operators */
+.o, .ow {
+    color: #89ddff;
+}
+
+/* Built-ins */
+.nb, .bp {
+    color: #82aaff;
+}
+
+/* Variables */
+.nv, .vc, .vg, .vi {
+    color: #f07178;
+}
+
+/* Docstrings */
+.sd, .s1.docstring {
+    color: #546e7a;
+}
+
+/* Decorators */
+.nd {
+    color: #82b1ff;
+}
+
+/* Line numbers */
+.lineno {
+    color: #546e7a;
+    border-right: 1px solid #37474f;
+    padding-right: 1em;
+    margin-right: 1em;
+}
+
+/* Blockquotes */
+blockquote {
+    margin: 1em 0;
+    padding: 0.8em 1em;
+    border-left: 4px solid #2980b9;
+    background-color: #f8f9fa;
+    font-style: italic;
+}
+
+blockquote p {
+    margin: 0.4em 0;
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 0.6em;
+    text-align: left;
+}
+
+th {
+    background-color: #f5f5f5;
+    font-weight: bold;
+}
+
+tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+/* Horizontal rule */
+hr {
+    border: none;
+    border-top: 2px solid #ecf0f1;
+    margin: 2em 0;
+}
+
+/* Images */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 1em auto;
+}
+
+/* Page breaks */
+.page-break {
+    page-break-after: always;
+}
+
+h1, h2, h3 {
+    page-break-after: avoid;
+}
+
+pre, table, blockquote {
+    page-break-inside: avoid;
+}
+
+/* Code file headers */
+.code-header {
+    background-color: #37474f;
+    color: #eceff1;
+    padding: 0.5em 1em;
+    border-radius: 6px 6px 0 0;
+    font-family: "SF Mono", monospace;
+    font-size: 0.85em;
+    margin-bottom: -1px;
+}
+
+.code-header + pre {
+    border-radius: 0 0 6px 6px;
+}

@@ -1,0 +1,103 @@
+{
+  "skill_name": "md2pdf",
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "basic-conversion",
+      "prompt": "帮我把 /home/wuyu/workspace/test-docs/basic.md 转换为 PDF 文件",
+      "expected_output": "生成一个格式良好的 PDF 文档，包含 Markdown 的所有内容，包括标题、段落和列表",
+      "files": ["/home/wuyu/workspace/test-docs/basic.md"],
+      "assertions": [
+        {
+          "type": "file_exists",
+          "path": "/home/wuyu/workspace/test-docs/basic.pdf",
+          "description": "PDF 文件应成功生成"
+        },
+        {
+          "type": "file_size",
+          "path": "/home/wuyu/workspace/test-docs/basic.pdf",
+          "min_size": 1000,
+          "description": "PDF 文件大小应大于 1KB"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "eval_name": "chinese-content",
+      "prompt": "帮我把这个中文 Markdown 文件转换为 PDF：/home/wuyu/workspace/test-docs/chinese.md，使用中文模板",
+      "expected_output": "PDF 文件应正确显示中文字符，不出现乱码或方框，段落首行应自动缩进",
+      "files": ["/home/wuyu/workspace/test-docs/chinese.md"],
+      "assertions": [
+        {
+          "type": "file_exists",
+          "path": "/home/wuyu/workspace/test-docs/chinese.pdf",
+          "description": "PDF 文件应成功生成"
+        },
+        {
+          "type": "file_size",
+          "path": "/home/wuyu/workspace/test-docs/chinese.pdf",
+          "min_size": 1000,
+          "description": "PDF 文件大小应大于 1KB"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "eval_name": "code-highlighting",
+      "prompt": "帮我把 /home/wuyu/workspace/test-docs/code-demo.md 转换为 PDF，使用代码高亮模板",
+      "expected_output": "PDF 应显示语法高亮的代码块，代码字体应为等宽字体",
+      "files": ["/home/wuyu/workspace/test-docs/code-demo.md"],
+      "assertions": [
+        {
+          "type": "file_exists",
+          "path": "/home/wuyu/workspace/test-docs/code-demo.pdf",
+          "description": "PDF 文件应成功生成"
+        },
+        {
+          "type": "file_size",
+          "path": "/home/wuyu/workspace/test-docs/code-demo.pdf",
+          "min_size": 1000,
+          "description": "PDF 文件大小应大于 1KB"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "eval_name": "custom-template",
+      "prompt": "帮我把 /home/wuyu/workspace/test-docs/basic.md 转换成 PDF，使用 modern 模板",
+      "expected_output": "应使用 modern.css 模板生成 PDF，具有现代风格的排版",
+      "files": ["/home/wuyu/workspace/test-docs/basic.md"],
+      "assertions": [
+        {
+          "type": "file_exists",
+          "path": "/home/wuyu/workspace/test-docs/basic.pdf",
+          "description": "PDF 文件应成功生成"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "eval_name": "batch-processing",
+      "prompt": "帮我把 /home/wuyu/workspace/test-docs/ 目录下的所有 Markdown 文件批量转换为 PDF",
+      "expected_output": "应成功转换所有 3 个 Markdown 文件为 PDF，并显示转换进度",
+      "files": ["/home/wuyu/workspace/test-docs/basic.md", "/home/wuyu/workspace/test-docs/chinese.md", "/home/wuyu/workspace/test-docs/code-demo.md"],
+      "assertions": [
+        {
+          "type": "file_exists",
+          "path": "/home/wuyu/workspace/test-docs/basic.pdf",
+          "description": "basic.pdf 应成功生成"
+        },
+        {
+          "type": "file_exists",
+          "path": "/home/wuyu/workspace/test-docs/chinese.pdf",
+          "description": "chinese.pdf 应成功生成"
+        },
+        {
+          "type": "file_exists",
+          "path": "/home/wuyu/workspace/test-docs/code-demo.pdf",
+          "description": "code-demo.pdf 应成功生成"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,340 @@
+/*
+ * Chinese Modern Template for md2pdf
+ * 中文现代模板 - 适合报告和专业文档
+ * Modern design optimized for Chinese content
+ */
+
+@page {
+    margin: 2cm 2.5cm;
+    size: A4;
+    @bottom-center {
+        content: counter(page);
+        font-family: 
+            "Noto Sans CJK SC",
+            "Source Han Sans SC",
+            "WenQuanYi Micro Hei",
+            sans-serif;
+        font-size: 9pt;
+        color: #666;
+    }
+}
+
+/* 中文字体栈 */
+body {
+    font-family: 
+        "Noto Serif CJK SC",
+        "Source Han Serif SC",
+        "Noto Sans CJK SC",
+        "Source Han Sans SC",
+        "WenQuanYi Micro Hei",
+        "WenQuanYi Zen Hei",
+        "Microsoft YaHei",
+        "SimSun",
+        serif;
+    font-size: 10.5pt;
+    line-height: 1.85;
+    color: #2c3e50;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0;
+    text-align: justify;
+}
+
+/* 标题样式 - 现代 */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 
+        "Noto Sans CJK SC",
+        "Source Han Sans SC",
+        "WenQuanYi Micro Hei",
+        "Microsoft YaHei",
+        "SimHei",
+        sans-serif;
+    font-weight: 600;
+    color: #1a252f;
+    margin-top: 2em;
+    margin-bottom: 0.6em;
+    line-height: 1.35;
+    letter-spacing: 0.02em;
+}
+
+h1 {
+    font-size: 2.2em;
+    font-weight: 700;
+    border-bottom: 3px solid #3498db;
+    padding-bottom: 0.4em;
+    margin-top: 0;
+    color: #2c3e50;
+}
+
+h2 {
+    font-size: 1.6em;
+    border-left: 5px solid #3498db;
+    padding-left: 0.6em;
+    font-weight: 600;
+}
+
+h3 {
+    font-size: 1.3em;
+    color: #34495e;
+}
+
+h4 {
+    font-size: 1.1em;
+    color: #7f8c8d;
+}
+
+p {
+    margin: 1em 0;
+    text-align: justify;
+    text-indent: 2em;
+    line-height: 1.85;
+}
+
+/* 列表 - 现代 */
+ul, ol {
+    margin: 1em 0;
+    padding-left: 2.5em;
+}
+
+li {
+    margin: 0.6em 0;
+    line-height: 1.7;
+}
+
+ul li {
+    list-style-type: disc;
+}
+
+ul ul li {
+    list-style-type: circle;
+}
+
+/* 链接 - 现代 */
+a {
+    color: #2980b9;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: all 0.2s;
+}
+
+a:hover {
+    border-bottom: 1px solid #2980b9;
+}
+
+/* 代码 - 现代等宽字体 */
+code {
+    font-family: 
+        "SF Mono",
+        "Monaco",
+        "Fira Code",
+        "Consolas",
+        "Noto Sans Mono CJK SC",
+        "WenQuanYi Micro Hei Mono",
+        monospace;
+    background-color: #f1f3f5;
+    padding: 0.25em 0.5em;
+    border-radius: 4px;
+    font-size: 0.85em;
+    color: #e83e8c;
+}
+
+pre {
+    background-color: #263238;
+    border: 1px solid #37474f;
+    border-radius: 8px;
+    padding: 1.2em;
+    overflow-x: auto;
+    margin: 1.2em 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    line-height: 1.5;
+}
+
+pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.8em;
+    line-height: 1.5;
+    color: #aed581;
+}
+
+/* 引用块 - 现代 */
+blockquote {
+    margin: 1.5em 0;
+    padding: 1em 1.5em;
+    border-left: 4px solid #3498db;
+    background: linear-gradient(to right, #f8f9fa, transparent);
+    color: #555;
+    font-style: normal;
+}
+
+blockquote p {
+    margin: 0.5em 0;
+    text-indent: 0;
+}
+
+/* 表格 - 现代 */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5em 0;
+    font-size: 0.95em;
+}
+
+th, td {
+    border: none;
+    border-bottom: 1px solid #dee2e6;
+    padding: 0.9em;
+    text-align: left;
+    line-height: 1.5;
+}
+
+th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+    font-family: 
+        "Noto Sans CJK SC",
+        "Source Han Sans SC",
+        "WenQuanYi Micro Hei",
+        sans-serif;
+    text-transform: uppercase;
+    font-size: 0.85em;
+    letter-spacing: 0.05em;
+}
+
+tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* 分隔线 - 现代 */
+hr {
+    border: none;
+    border-top: 2px solid #e9ecef;
+    margin: 2.5em 0;
+    position: relative;
+}
+
+hr::after {
+    content: "";
+    position: absolute;
+    top: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 2px;
+    background: linear-gradient(to right, transparent, #3498db, transparent);
+}
+
+/* 图片 - 现代 */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 1.5em auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* 分页控制 */
+.page-break {
+    page-break-after: always;
+}
+
+h1, h2, h3 {
+    page-break-after: avoid;
+}
+
+pre, table, blockquote {
+    page-break-inside: avoid;
+}
+
+/* 封面页 */
+.cover {
+    text-align: center;
+    padding: 5em 0;
+}
+
+.cover h1 {
+    font-size: 2.8em;
+    border: none;
+    margin-bottom: 1em;
+    font-weight: 700;
+}
+
+.cover .subtitle {
+    font-size: 1.4em;
+    color: #7f8c8d;
+    margin: 1em 0;
+    font-weight: 400;
+}
+
+.cover .meta {
+    font-size: 1em;
+    color: #95a5a6;
+    margin-top: 3em;
+}
+
+.cover .meta p {
+    margin: 0.5em 0;
+    text-indent: 0;
+}
+
+/* 强调 */
+strong, b {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+em, i {
+    font-style: normal;
+    color: #555;
+}
+
+/* 文档头部 */
+.doc-header {
+    text-align: center;
+    margin-bottom: 3em;
+    padding-bottom: 2em;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.doc-header h1 {
+    border: none;
+    margin-bottom: 0.5em;
+}
+
+/* 目录样式 */
+.toc {
+    margin: 2em 0;
+}
+
+.toc h2 {
+    border-left: none;
+    padding-left: 0;
+    text-align: center;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 0.5em;
+    margin-bottom: 1em;
+}
+
+.toc ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.toc li {
+    margin: 0.8em 0;
+    padding-left: 1em;
+    border-left: 2px solid #e0e0e0;
+}
+
+.toc a {
+    border-bottom: none;
+    color: #2c3e50;
+}
+
+.toc a:hover {
+    color: #2980b9;
+}
