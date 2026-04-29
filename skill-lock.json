@@ -1,0 +1,165 @@
+{
+  "version": 3,
+  "skills": {
+    "jina-cli": {
+      "source": "geekjourneyx/jina-cli",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/geekjourneyx/jina-cli.git",
+      "skillPath": "skills/jina-cli/SKILL.md",
+      "skillFolderHash": "80905a021c454fcbad16d92cdcac1a7401270fea",
+      "installedAt": "2026-03-28T14:29:03.176Z",
+      "updatedAt": "2026-04-29T02:43:41.013Z"
+    },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/vercel-labs/skills.git",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "skillFolderHash": "3013fdeb8a11b10b1eb795ec3ae8bfca38f7c26d",
+      "installedAt": "2026-03-28T14:30:51.285Z",
+      "updatedAt": "2026-04-29T02:40:14.112Z"
+    },
+    "paddleocr-text-recognition": {
+      "source": "aidenwu0209/paddleocr-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/aidenwu0209/paddleocr-skills.git",
+      "skillPath": "skills/paddleocr-text-recognition/SKILL.md",
+      "skillFolderHash": "cd470ad2842c9e68fbd33a5937fc918ece19f7c1",
+      "installedAt": "2026-03-28T14:48:02.145Z",
+      "updatedAt": "2026-04-29T02:44:37.073Z"
+    },
+    "agent-browser": {
+      "source": "vercel-labs/agent-browser",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/vercel-labs/agent-browser.git",
+      "skillPath": "skills/agent-browser/SKILL.md",
+      "skillFolderHash": "121eecacd86c0aab06aef5cd4663e80c5397cd41",
+      "installedAt": "2026-03-28T14:49:34.081Z",
+      "updatedAt": "2026-04-29T02:40:39.281Z"
+    },
+    "docx": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/anthropics/skills.git",
+      "skillPath": "skills/docx/SKILL.md",
+      "skillFolderHash": "a0d216202f9793a78da44cf96aabe48f42e627ac",
+      "pluginName": "document-skills",
+      "installedAt": "2026-03-28T14:49:34.732Z",
+      "updatedAt": "2026-04-29T02:41:30.743Z"
+    },
+    "xlsx": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/anthropics/skills.git",
+      "skillPath": "skills/xlsx/SKILL.md",
+      "skillFolderHash": "f5fb1cdb7993b2feee8367e983e9d4d58d2eedd4",
+      "pluginName": "document-skills",
+      "installedAt": "2026-03-28T14:49:37.136Z",
+      "updatedAt": "2026-04-29T02:42:54.077Z"
+    },
+    "tavily-best-practices": {
+      "source": "tavily-ai/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/tavily-ai/skills.git",
+      "skillPath": "skills/tavily-best-practices/SKILL.md",
+      "skillFolderHash": "4e4e39f5ed17ded09f72c7a9e5a1736bd7d4a08f",
+      "installedAt": "2026-03-28T14:50:27.474Z",
+      "updatedAt": "2026-04-29T02:45:13.785Z"
+    },
+    "skill-creator": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/anthropics/skills.git",
+      "skillPath": "skills/skill-creator/SKILL.md",
+      "skillFolderHash": "3cf9a8db32597ba3e24b584a3d696f4e11c7d7b6",
+      "pluginName": "example-skills",
+      "installedAt": "2026-03-28T14:50:27.575Z",
+      "updatedAt": "2026-04-29T02:46:05.449Z"
+    },
+    "pptx": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/anthropics/skills.git",
+      "skillPath": "skills/pptx/SKILL.md",
+      "skillFolderHash": "10b3d70962e489867ddfee7da92f7da6b0eccc4f",
+      "pluginName": "document-skills",
+      "installedAt": "2026-03-28T14:50:28.041Z",
+      "updatedAt": "2026-04-29T02:42:34.446Z"
+    },
+    "humanizer-zh": {
+      "source": "op7418/humanizer-zh",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/op7418/humanizer-zh.git",
+      "skillPath": "SKILL.md",
+      "skillFolderHash": "91f3d394db8419c20d67ebe22a96cf8fee0a404b",
+      "installedAt": "2026-03-31T07:11:27.204Z",
+      "updatedAt": "2026-04-29T02:46:39.661Z"
+    },
+    "memos-skill": {
+      "source": "WuYuStar/opencode-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/WuYuStar/opencode-skills.git",
+      "skillPath": "memos-skill/SKILL.md",
+      "skillFolderHash": "1de1a328c3f267311541a921c4ad851225ebd413",
+      "installedAt": "2026-04-04T10:26:35.991Z",
+      "updatedAt": "2026-04-29T02:36:32.400Z"
+    },
+    "sixdim-prompt": {
+      "source": "WuYuStar/opencode-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/WuYuStar/opencode-skills.git",
+      "skillPath": "sixdim-prompt/SKILL.md",
+      "skillFolderHash": "88a626ed64d9a6c751517fce80c2acb4ff444a4f",
+      "installedAt": "2026-04-04T11:15:50.589Z",
+      "updatedAt": "2026-04-29T02:36:32.414Z"
+    },
+    "ppt-master": {
+      "source": "hugohe3/ppt-master",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/hugohe3/ppt-master.git",
+      "skillPath": "skills/ppt-master/SKILL.md",
+      "skillFolderHash": "dbb7d39a6b0d1b3b655112052b5ae00f1070f759",
+      "installedAt": "2026-04-04T11:19:19.484Z",
+      "updatedAt": "2026-04-29T02:49:28.925Z"
+    },
+    "crawl4ai": {
+      "source": "brettdavies/crawl4ai-skill",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/brettdavies/crawl4ai-skill.git",
+      "skillPath": "crawl4ai/SKILL.md",
+      "skillFolderHash": "cda599e109beb00142882600bcbb472a6675e56b",
+      "installedAt": "2026-04-29T02:36:32.377Z",
+      "updatedAt": "2026-04-29T02:50:09.972Z"
+    },
+    "ddgs-search": {
+      "source": "WuYuStar/opencode-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/WuYuStar/opencode-skills.git",
+      "skillPath": "ddgs-search/SKILL.md",
+      "skillFolderHash": "727872a58e3702e9d600d118b454cd7f8fe6ad11",
+      "installedAt": "2026-04-29T02:36:32.380Z",
+      "updatedAt": "2026-04-29T02:36:32.380Z"
+    },
+    "md2pdf": {
+      "source": "WuYuStar/opencode-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/WuYuStar/opencode-skills.git",
+      "skillPath": "md2pdf/SKILL.md",
+      "skillFolderHash": "1f05bc01297c5f026fff59caf5a568e1c083e36f",
+      "installedAt": "2026-04-29T02:36:32.396Z",
+      "updatedAt": "2026-04-29T02:36:32.396Z"
+    },
+    "pdf-skill": {
+      "source": "WuYuStar/opencode-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/WuYuStar/opencode-skills.git",
+      "skillPath": "pdf-skill/SKILL.md",
+      "skillFolderHash": "b2492c1df8b369802d18e762bcdedf762435f599",
+      "installedAt": "2026-04-29T02:36:32.406Z",
+      "updatedAt": "2026-04-29T02:36:32.406Z"
+    }
+  },
+  "dismissed": {
+    "findSkillsPrompt": true
+  }
+}
