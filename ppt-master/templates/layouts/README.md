@@ -1,11 +1,11 @@
-# Page Layout Template Library (20 Templates)
+# Page Layout Template Library (21 Templates)
 
 Pre-built PPT page layout templates supporting multiple styles and use cases.
 
-- **Full Index**: [README.md](./README.md) (human browsing)
-- **JSON Index**: [layouts_index.json](./layouts_index.json) (AI / programmatic lookup — preferred)
+- **Full Index**: [README.md](./README.md) (human browsing — includes categories, primary colors, detailed tone)
+- **Slim Index**: [layouts_index.json](./layouts_index.json) (lightweight lookup — `label` / `summary` / `keywords` only)
 
-> **AI / Programmatic recommendation**: Prefer reading `layouts_index.json`; use this README for human browsing and quick comparison.
+> **Template selection is opt-in.** The main workflow defaults to free design and does NOT read `layouts_index.json` unless the user explicitly requests a template. See `SKILL.md` Step 3.
 
 ---
 
@@ -16,6 +16,7 @@ Pre-built PPT page layout templates supporting multiple styles and use cases.
 | `google_style` | Brand | Annual reports, tech sharing, data presentation | Google Four Colors `#4285F4` `#EA4335` `#FBBC04` `#34A853` | Modern clean, data-driven, ample whitespace |
 | `mckinsey` | Brand | Strategic consulting, executive reports, investment analysis | McKinsey Blue `#005587` | Structured thinking, minimalist premium, MECE principle |
 | `anthropic` | Brand | AI tech sharing, developer conferences, product launches | Anthropic Orange `#D97757` | Tech-forward, conclusion-first, dark cover |
+| `china_telecom_template` | Brand | Telecom solutions, digital transformation plans,政企汇报 | Telecom Red `#C00000` | Restrained, authoritative, telecom enterprise style |
 | `中汽研_常规` | Brand | Product certification, evaluation & testing | Deep Blue `#004098` | [Standard] Professional authority, consulting style |
 | `中汽研_商务` | Brand | Business visits, technical exchanges | Blue Gradient `#003366` | [Business] Modern tech, composed and sophisticated |
 | `中汽研_现代` | Brand | Strategic launches, future tech | Deep Blue `#001529` | [Future] Future Tech, neon glow |
@@ -47,6 +48,7 @@ Templates mimicking **specific well-known brands/institutions** with their exclu
 | `google_style` | Google Material Design style, four-color brand identity |
 | `mckinsey` | McKinsey consulting style, data-driven and structured |
 | `anthropic` | Anthropic AI style, dark tech-forward aesthetic |
+| `china_telecom_template` | China Telecom brand style, red-gray structural header + ribbon footer |
 | `中汽研_常规` | CATARC standard style (v1), suitable for certification and evaluation |
 | `中汽研_商务` | CATARC business style (v2), modern tech business, composed and sophisticated |
 | `中汽研_现代` | CATARC modern style (v3 Future), Future Tech style, deep blue + neon cyan |
@@ -225,9 +227,9 @@ cp templates/layouts/government_red/* projects/<project>/templates/
 4. All SVGs use `viewBox="0 0 1280 720"`
 5. Follow SVG technical constraints (see below)
 6. Validate the template directory with `python3 scripts/svg_quality_checker.py templates/layouts/<template_name> --format ppt169`
-7. Register the new template in `templates/layouts/layouts_index.json`
+7. Register the new template in `templates/layouts/layouts_index.json` with three fields: `label`, `summary`, `keywords`
 
-`layouts_index.json` is the primary machine-readable source for template discovery. A template folder without an index entry is considered incomplete.
+`layouts_index.json` is the lightweight lookup used when a user explicitly opts into the template flow. A template folder without an index entry will not be discoverable by that flow.
 
 ### SVG Technical Constraints (All Templates Must Comply)
 
@@ -243,14 +245,15 @@ cp templates/layouts/government_red/* projects/<project>/templates/
 
 | Banned Element | Alternative |
 |----------------|-------------|
+| HTML named entities in text (`&nbsp;` `&mdash;` `&copy;` `&ndash;` `&reg;` …) | Write the raw Unicode character directly (`—` `–` `©` `®` `→` NBSP …); see shared-standards.md §1.0 |
+| Bare `&` `<` `>` `"` `'` in text or attribute values | Escape as XML entities `&amp;` `&lt;` `&gt;` `&quot;` `&apos;` (e.g. `R&amp;D`, `error &lt; 5%`) |
 | `<foreignObject>` | Use `<text>` + `<tspan>` |
-| `clipPath` | Redesign layout |
+| `clipPath` on shapes / groups / text | Draw the target geometry directly with the matching native element (`<circle>` / `<ellipse>` / `<rect rx>` / `<polygon>` / `<path>`). `clipPath` on `<image>` elements is conditionally allowed — see shared-standards.md §1.2 |
 | `mask` | Use `fill-opacity` |
 | `<style>` / `class` | Use inline styles |
 | `textPath` | Use plain `<text>` |
 | `animate*` | Static design |
 | `script` | No interactivity supported |
-| `marker` / `marker-end` | Use `<polygon>` triangles |
 | `rgba()` | Use HEX + `fill-opacity` |
 | `<g opacity="...">` | Set opacity on each child element individually |
 

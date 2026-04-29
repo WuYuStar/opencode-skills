@@ -8,7 +8,7 @@ import base64
 from typing import Any
 from xml.etree import ElementTree as ET
 
-from .drawingml_context import ConvertContext
+from .drawingml_context import ConvertContext, ShapeResult
 from .drawingml_utils import (
     SVG_NS, XLINK_NS, ANGLE_UNIT, FONT_PX_TO_HUNDREDTHS_PT, DASH_PRESETS,
     px_to_emu, _f, _get_attr,
@@ -19,7 +19,7 @@ from .drawingml_utils import (
 )
 from .drawingml_styles import (
     build_solid_fill, build_gradient_fill,
-    build_fill_xml, build_stroke_xml, build_effect_xml,
+    build_fill_xml, build_stroke_xml, build_effect_xml, classify_filter_effect,
     get_fill_opacity, get_stroke_opacity,
 )
 from .drawingml_paths import (
@@ -58,7 +58,7 @@ def _wrap_shape(
 # rect
 # ---------------------------------------------------------------------------
 
-def convert_rect(elem: ET.Element, ctx: ConvertContext) -> str:
+def convert_rect(elem: ET.Element, ctx: ConvertContext) -> ShapeResult | None:
     """Convert SVG <rect> to DrawingML shape."""
     x = ctx_x(_f(elem.get('x')), ctx)
     y = ctx_y(_f(elem.get('y')), ctx)
@@ -66,7 +66,7 @@ def convert_rect(elem: ET.Element, ctx: ConvertContext) -> str:
     h = ctx_h(_f(elem.get('height')), ctx)
 
     if w <= 0 or h <= 0:
-        return ''
+        return None
 
     fill_op = get_fill_opacity(elem, ctx)
     stroke_op = get_stroke_opacity(elem, ctx)
@@ -88,10 +88,17 @@ def convert_rect(elem: ET.Element, ctx: ConvertContext) -> str:
     geom = '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>'
 
     shape_id = ctx.next_id()
-    return _wrap_shape(
-        shape_id, f'Rectangle {shape_id}',
-        px_to_emu(x), px_to_emu(y), px_to_emu(w), px_to_emu(h),
-        geom, fill, stroke, effect, rot=rot,
+    off_x = px_to_emu(x)
+    off_y = px_to_emu(y)
+    ext_cx = px_to_emu(w)
+    ext_cy = px_to_emu(h)
+    return ShapeResult(
+        xml=_wrap_shape(
+            shape_id, f'Rectangle {shape_id}',
+            off_x, off_y, ext_cx, ext_cy,
+            geom, fill, stroke, effect, rot=rot,
+        ),
+        bounds_emu=(off_x, off_y, off_x + ext_cx, off_y + ext_cy),
     )
 
 
@@ -201,14 +208,14 @@ def _is_donut_circle(elem: ET.Element, ctx: ConvertContext) -> bool:
     return True
 
 
-def convert_circle(elem: ET.Element, ctx: ConvertContext) -> str:
+def convert_circle(elem: ET.Element, ctx: ConvertContext) -> ShapeResult | None:
     """Convert SVG <circle> to DrawingML ellipse or donut-arc shape."""
     cx_ = _f(elem.get('cx'))
     cy_ = _f(elem.get('cy'))
     r = _f(elem.get('r'))
 
     if r <= 0:
-        return ''
+        return None
 
     # --- Donut-chart arc segment detection ---
     if _is_donut_circle(elem, ctx):
@@ -231,7 +238,7 @@ def convert_circle(elem: ET.Element, ctx: ConvertContext) -> str:
             ctx.scale_x, ctx.scale_y,
         )
         if not geom:
-            return ''
+            return None
 
         # Use the stroke color/gradient as fill for the arc shape
         stroke_val = _get_attr(elem, 'stroke', ctx)
@@ -253,10 +260,13 @@ def convert_circle(elem: ET.Element, ctx: ConvertContext) -> str:
             effect = build_effect_xml(ctx.defs[filt_id])
 
         shape_id = ctx.next_id()
-        return _wrap_shape(
-            shape_id, f'Arc {shape_id}',
-            min_x, min_y, w_emu, h_emu,
-            geom, fill, stroke_xml, effect,
+        return ShapeResult(
+            xml=_wrap_shape(
+                shape_id, f'Arc {shape_id}',
+                min_x, min_y, w_emu, h_emu,
+                geom, fill, stroke_xml, effect,
+            ),
+            bounds_emu=(min_x, min_y, min_x + w_emu, min_y + h_emu),
         )
 
     # --- Normal circle ---
@@ -283,10 +293,17 @@ def convert_circle(elem: ET.Element, ctx: ConvertContext) -> str:
     geom = '<a:prstGeom prst="ellipse"><a:avLst/></a:prstGeom>'
 
     shape_id = ctx.next_id()
-    return _wrap_shape(
-        shape_id, f'Ellipse {shape_id}',
-        px_to_emu(x), px_to_emu(y), px_to_emu(w), px_to_emu(h),
-        geom, fill, stroke, effect,
+    off_x = px_to_emu(x)
+    off_y = px_to_emu(y)
+    ext_cx = px_to_emu(w)
+    ext_cy = px_to_emu(h)
+    return ShapeResult(
+        xml=_wrap_shape(
+            shape_id, f'Ellipse {shape_id}',
+            off_x, off_y, ext_cx, ext_cy,
+            geom, fill, stroke, effect,
+        ),
+        bounds_emu=(off_x, off_y, off_x + ext_cx, off_y + ext_cy),
     )
 
 
@@ -294,8 +311,14 @@ def convert_circle(elem: ET.Element, ctx: ConvertContext) -> str:
 # line
 # ---------------------------------------------------------------------------
 
-def convert_line(elem: ET.Element, ctx: ConvertContext) -> str:
-    """Convert SVG <line> to DrawingML custom geometry shape."""
+def convert_line(elem: ET.Element, ctx: ConvertContext) -> ShapeResult | None:
+    """Convert SVG <line> to DrawingML shape.
+
+    Lines with marker-start / marker-end are converted using the 'line' preset
+    geometry (prstGeom prst="line") so that PowerPoint renders native arrow
+    heads (headEnd / tailEnd) correctly.  Plain lines (no markers) continue to
+    use custom geometry which is sufficient and avoids flipH/flipV complexity.
+    """
     x1 = ctx_x(_f(elem.get('x1')), ctx)
     y1 = ctx_y(_f(elem.get('y1')), ctx)
     x2 = ctx_x(_f(elem.get('x2')), ctx)
@@ -303,25 +326,6 @@ def convert_line(elem: ET.Element, ctx: ConvertContext) -> str:
 
     min_x = min(x1, x2)
     min_y = min(y1, y2)
-    w = max(abs(x2 - x1), 1)
-    h = max(abs(y2 - y1), 1)
-
-    w_emu = px_to_emu(w)
-    h_emu = px_to_emu(h)
-
-    lx1 = px_to_emu(x1 - min_x)
-    ly1 = px_to_emu(y1 - min_y)
-    lx2 = px_to_emu(x2 - min_x)
-    ly2 = px_to_emu(y2 - min_y)
-
-    geom = f'''<a:custGeom>
-<a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/>
-<a:rect l="l" t="t" r="r" b="b"/>
-<a:pathLst><a:path w="{w_emu}" h="{h_emu}">
-<a:moveTo><a:pt x="{lx1}" y="{ly1}"/></a:moveTo>
-<a:lnTo><a:pt x="{lx2}" y="{ly2}"/></a:lnTo>
-</a:path></a:pathLst>
-</a:custGeom>'''
 
     stroke_op = get_stroke_opacity(elem, ctx)
     stroke = build_stroke_xml(elem, ctx, stroke_op)
@@ -334,10 +338,100 @@ def convert_line(elem: ET.Element, ctx: ConvertContext) -> str:
             rot = int(float(r_match.group(1)) * ANGLE_UNIT)
 
     shape_id = ctx.next_id()
-    return _wrap_shape(
-        shape_id, f'Line {shape_id}',
-        px_to_emu(min_x), px_to_emu(min_y), w_emu, h_emu,
-        geom, '<a:noFill/>', stroke, rot=rot,
+    off_x = px_to_emu(min_x)
+    off_y = px_to_emu(min_y)
+
+    # Determine if this line carries arrow markers.
+    has_marker = bool(
+        _get_attr(elem, 'marker-start', ctx) or
+        _get_attr(elem, 'marker-end', ctx)
+    )
+
+    if has_marker:
+        # ----------------------------------------------------------------
+        # Preset geometry approach: prstGeom prst="line"
+        # PowerPoint only renders headEnd / tailEnd on lines whose geometry
+        # it can intrinsically understand as a "line" (i.e. preset or
+        # connector shapes).  Custom geometry shapes silently ignore
+        # headEnd / tailEnd in most PowerPoint versions.
+        #
+        # The "line" preset draws from (0,0) to (w,h).
+        #   headEnd  → placed at the start of the line = (x1, y1)
+        #   tailEnd  → placed at the end   of the line = (x2, y2)
+        # We set flipH / flipV so that the preset start/end align with the
+        # original SVG endpoints:
+        #   default  (no flip)  : top-left  → bottom-right  (x1≤x2, y1≤y2)
+        #   flipH               : top-right → bottom-left   (x1>x2, y1≤y2)
+        #   flipV               : bottom-left → top-right   (x1≤x2, y1>y2)
+        #   flipH + flipV       : bottom-right → top-left   (x1>x2, y1>y2)
+        # ----------------------------------------------------------------
+        w = abs(x2 - x1)
+        h = abs(y2 - y1)
+        # DrawingML requires ext cx/cy ≥ 1 EMU
+        w_emu = px_to_emu(w) if w > 0 else 1
+        h_emu = px_to_emu(h) if h > 0 else 1
+
+        flip_h = x1 > x2
+        flip_v = y1 > y2
+        flip_attr = ''
+        if flip_h and flip_v:
+            flip_attr = ' flipH="1" flipV="1"'
+        elif flip_h:
+            flip_attr = ' flipH="1"'
+        elif flip_v:
+            flip_attr = ' flipV="1"'
+
+        rot_attr = f' rot="{rot}"' if rot else ''
+        xml = (
+            f'<p:sp>'
+            f'<p:nvSpPr>'
+            f'<p:cNvPr id="{shape_id}" name="{_xml_escape(f"Line {shape_id}")}"/>'
+            f'<p:cNvSpPr/><p:nvPr/>'
+            f'</p:nvSpPr>'
+            f'<p:spPr>'
+            f'<a:xfrm{flip_attr}{rot_attr}>'
+            f'<a:off x="{off_x}" y="{off_y}"/>'
+            f'<a:ext cx="{w_emu}" cy="{h_emu}"/>'
+            f'</a:xfrm>'
+            f'<a:prstGeom prst="line"><a:avLst/></a:prstGeom>'
+            f'<a:noFill/>'
+            f'{stroke}'
+            f'</p:spPr>'
+            f'</p:sp>'
+        )
+    else:
+        # ----------------------------------------------------------------
+        # Custom geometry (original behaviour) for plain lines.
+        # ----------------------------------------------------------------
+        w = max(abs(x2 - x1), 1)
+        h = max(abs(y2 - y1), 1)
+        w_emu = px_to_emu(w)
+        h_emu = px_to_emu(h)
+
+        lx1 = px_to_emu(x1 - min_x)
+        ly1 = px_to_emu(y1 - min_y)
+        lx2 = px_to_emu(x2 - min_x)
+        ly2 = px_to_emu(y2 - min_y)
+
+        geom = (
+            f'<a:custGeom>'
+            f'<a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/>'
+            f'<a:rect l="l" t="t" r="r" b="b"/>'
+            f'<a:pathLst><a:path w="{w_emu}" h="{h_emu}">'
+            f'<a:moveTo><a:pt x="{lx1}" y="{ly1}"/></a:moveTo>'
+            f'<a:lnTo><a:pt x="{lx2}" y="{ly2}"/></a:lnTo>'
+            f'</a:path></a:pathLst>'
+            f'</a:custGeom>'
+        )
+        xml = _wrap_shape(
+            shape_id, f'Line {shape_id}',
+            off_x, off_y, w_emu, h_emu,
+            geom, '<a:noFill/>', stroke, rot=rot,
+        )
+
+    return ShapeResult(
+        xml=xml,
+        bounds_emu=(off_x, off_y, off_x + w_emu, off_y + h_emu),
     )
 
 
@@ -345,11 +439,11 @@ def convert_line(elem: ET.Element, ctx: ConvertContext) -> str:
 # path
 # ---------------------------------------------------------------------------
 
-def convert_path(elem: ET.Element, ctx: ConvertContext) -> str:
+def convert_path(elem: ET.Element, ctx: ConvertContext) -> ShapeResult | None:
     """Convert SVG <path> to DrawingML custom geometry shape."""
     d = elem.get('d', '')
     if not d:
-        return ''
+        return None
 
     commands = parse_svg_path(d)
     commands = svg_path_to_absolute(commands)
@@ -373,7 +467,7 @@ def convert_path(elem: ET.Element, ctx: ConvertContext) -> str:
     )
 
     if not path_xml:
-        return ''
+        return None
 
     w_emu = px_to_emu(width)
     h_emu = px_to_emu(height)
@@ -397,10 +491,15 @@ def convert_path(elem: ET.Element, ctx: ConvertContext) -> str:
         effect = build_effect_xml(ctx.defs[filt_id])
 
     shape_id = ctx.next_id()
-    return _wrap_shape(
-        shape_id, f'Freeform {shape_id}',
-        px_to_emu(min_x), px_to_emu(min_y), w_emu, h_emu,
-        geom, fill, stroke, effect, rot=rot,
+    off_x = px_to_emu(min_x)
+    off_y = px_to_emu(min_y)
+    return ShapeResult(
+        xml=_wrap_shape(
+            shape_id, f'Freeform {shape_id}',
+            off_x, off_y, w_emu, h_emu,
+            geom, fill, stroke, effect, rot=rot,
+        ),
+        bounds_emu=(off_x, off_y, off_x + w_emu, off_y + h_emu),
     )
 
 
@@ -416,11 +515,11 @@ def _parse_points(points_str: str) -> list[tuple[float, float]]:
     return [(float(nums[i]), float(nums[i + 1])) for i in range(0, len(nums) - 1, 2)]
 
 
-def convert_polygon(elem: ET.Element, ctx: ConvertContext) -> str:
+def convert_polygon(elem: ET.Element, ctx: ConvertContext) -> ShapeResult | None:
     """Convert SVG <polygon> to DrawingML custom geometry shape."""
     points = _parse_points(elem.get('points', ''))
     if not points:
-        return ''
+        return None
 
     commands = [PathCommand('M', [points[0][0], points[0][1]])]
     for px_, py_ in points[1:]:
@@ -433,7 +532,7 @@ def convert_polygon(elem: ET.Element, ctx: ConvertContext) -> str:
     )
 
     if not path_xml:
-        return ''
+        return None
 
     w_emu = px_to_emu(width)
     h_emu = px_to_emu(height)
@@ -459,18 +558,23 @@ def convert_polygon(elem: ET.Element, ctx: ConvertContext) -> str:
             rot = int(float(r_match.group(1)) * ANGLE_UNIT)
 
     shape_id = ctx.next_id()
-    return _wrap_shape(
-        shape_id, f'Polygon {shape_id}',
-        px_to_emu(min_x), px_to_emu(min_y), w_emu, h_emu,
-        geom, fill, stroke, rot=rot,
+    off_x = px_to_emu(min_x)
+    off_y = px_to_emu(min_y)
+    return ShapeResult(
+        xml=_wrap_shape(
+            shape_id, f'Polygon {shape_id}',
+            off_x, off_y, w_emu, h_emu,
+            geom, fill, stroke, rot=rot,
+        ),
+        bounds_emu=(off_x, off_y, off_x + w_emu, off_y + h_emu),
     )
 
 
-def convert_polyline(elem: ET.Element, ctx: ConvertContext) -> str:
+def convert_polyline(elem: ET.Element, ctx: ConvertContext) -> ShapeResult | None:
     """Convert SVG <polyline> to DrawingML custom geometry shape."""
     points = _parse_points(elem.get('points', ''))
     if not points:
-        return ''
+        return None
 
     commands = [PathCommand('M', [points[0][0], points[0][1]])]
     for px_, py_ in points[1:]:
@@ -482,7 +586,7 @@ def convert_polyline(elem: ET.Element, ctx: ConvertContext) -> str:
     )
 
     if not path_xml:
-        return ''
+        return None
 
     w_emu = px_to_emu(width)
     h_emu = px_to_emu(height)
@@ -508,10 +612,15 @@ def convert_polyline(elem: ET.Element, ctx: ConvertContext) -> str:
             rot = int(float(r_match.group(1)) * ANGLE_UNIT)
 
     shape_id = ctx.next_id()
-    return _wrap_shape(
-        shape_id, f'Polyline {shape_id}',
-        px_to_emu(min_x), px_to_emu(min_y), w_emu, h_emu,
-        geom, '<a:noFill/>', stroke, rot=rot,
+    off_x = px_to_emu(min_x)
+    off_y = px_to_emu(min_y)
+    return ShapeResult(
+        xml=_wrap_shape(
+            shape_id, f'Polyline {shape_id}',
+            off_x, off_y, w_emu, h_emu,
+            geom, '<a:noFill/>', stroke, rot=rot,
+        ),
+        bounds_emu=(off_x, off_y, off_x + w_emu, off_y + h_emu),
     )
 
 
@@ -526,6 +635,59 @@ def _normalize_text(text: str) -> str:
     return re.sub(r'\s+', ' ', text).strip()
 
 
+def _override_run_attrs(
+    parent_attrs: dict[str, Any],
+    tspan: ET.Element,
+) -> dict[str, Any]:
+    """Layer a tspan's styling attributes over the inherited run attrs."""
+    run_attrs = dict(parent_attrs)
+    if tspan.get('font-weight'):
+        run_attrs['font_weight'] = tspan.get('font-weight')
+    if tspan.get('fill'):
+        child_fill = tspan.get('fill')
+        run_attrs['fill_raw'] = child_fill
+        c = parse_hex_color(child_fill)
+        if c:
+            run_attrs['fill'] = c
+    if tspan.get('font-size'):
+        run_attrs['font_size'] = _f(tspan.get('font-size'), run_attrs['font_size'])
+    if tspan.get('font-family'):
+        run_attrs['font_family'] = tspan.get('font-family')
+    if tspan.get('font-style'):
+        run_attrs['font_style'] = tspan.get('font-style')
+    if tspan.get('text-decoration'):
+        run_attrs['text_decoration'] = tspan.get('text-decoration')
+    return run_attrs
+
+
+def _collect_tspan_runs(
+    tspan: ET.Element,
+    inherited_attrs: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Recursively turn a tspan subtree into runs, propagating styling through nested tspans.
+
+    Order: tspan.text → (each nested child tspan's runs → that child's tail under THIS tspan's attrs).
+    """
+    runs: list[dict[str, Any]] = []
+    own_attrs = _override_run_attrs(inherited_attrs, tspan)
+
+    if tspan.text:
+        t = _normalize_text(tspan.text)
+        if t:
+            runs.append({**own_attrs, 'text': t})
+
+    for child in tspan:
+        child_tag = child.tag.replace(f'{{{SVG_NS}}}', '')
+        if child_tag == 'tspan':
+            runs.extend(_collect_tspan_runs(child, own_attrs))
+            if child.tail:
+                t = _normalize_text(child.tail)
+                if t:
+                    runs.append({**own_attrs, 'text': t})
+
+    return runs
+
+
 def _build_text_runs(
     elem: ET.Element,
     parent_attrs: dict[str, Any],
@@ -533,7 +695,8 @@ def _build_text_runs(
     """Build a list of text runs from a <text> element, handling <tspan> children.
 
     Each run is a dict with keys: text, fill, fill_raw, font_weight,
-    font_style, font_family, font_size.
+    font_style, font_family, font_size. Nested tspans are walked recursively so
+    inline format changes inside a tspan still produce distinct runs.
     """
     runs: list[dict[str, Any]] = []
 
@@ -545,28 +708,7 @@ def _build_text_runs(
     for child in elem:
         child_tag = child.tag.replace(f'{{{SVG_NS}}}', '')
         if child_tag == 'tspan':
-            t = _normalize_text(''.join(child.itertext()))
-            if t:
-                run_attrs = dict(parent_attrs)
-                if child.get('font-weight'):
-                    run_attrs['font_weight'] = child.get('font-weight')
-                if child.get('fill'):
-                    child_fill = child.get('fill')
-                    run_attrs['fill_raw'] = child_fill
-                    c = parse_hex_color(child_fill)
-                    if c:
-                        run_attrs['fill'] = c
-                if child.get('font-size'):
-                    run_attrs['font_size'] = _f(child.get('font-size'), run_attrs['font_size'])
-                if child.get('font-family'):
-                    run_attrs['font_family'] = child.get('font-family')
-                if child.get('font-style'):
-                    run_attrs['font_style'] = child.get('font-style')
-                if child.get('text-decoration'):
-                    run_attrs['text_decoration'] = child.get('text-decoration')
-                runs.append({**run_attrs, 'text': t})
-
-            # Tail text after </tspan> belongs to parent
+            runs.extend(_collect_tspan_runs(child, parent_attrs))
             if child.tail:
                 t = _normalize_text(child.tail)
                 if t:
@@ -579,6 +721,7 @@ def _build_run_xml(
     run: dict[str, Any],
     default_fonts: dict[str, str],
     ctx: ConvertContext | None = None,
+    effect_xml: str = '',
 ) -> str:
     """Build a single <a:r> XML from a run dict. Supports gradient fills on text."""
     text = run['text']
@@ -613,6 +756,7 @@ def _build_run_xml(
     return f'''<a:r>
 <a:rPr lang="zh-CN" sz="{sz}"{b_attr}{i_attr}{u_attr}{strike_attr} dirty="0">
 {fill_xml}
+{effect_xml}
 <a:latin typeface="{_xml_escape(fonts['latin'])}"/>
 <a:ea typeface="{_xml_escape(fonts['ea'])}"/>
 <a:cs typeface="{_xml_escape(fonts['latin'])}"/>
@@ -621,7 +765,7 @@ def _build_run_xml(
 </a:r>'''
 
 
-def convert_text(elem: ET.Element, ctx: ConvertContext) -> str:
+def convert_text(elem: ET.Element, ctx: ConvertContext) -> ShapeResult | None:
     """Convert SVG <text> to DrawingML text shape with multi-run support."""
     x = ctx_x(_f(elem.get('x')), ctx)
     y = ctx_y(_f(elem.get('y')), ctx)
@@ -650,11 +794,11 @@ def convert_text(elem: ET.Element, ctx: ConvertContext) -> str:
     runs = _build_text_runs(elem, parent_attrs)
 
     if not runs:
-        return ''
+        return None
 
     full_text = ''.join(r['text'] for r in runs)
     if not full_text.strip():
-        return ''
+        return None
 
     # Estimate text dimensions
     text_width = estimate_text_width(full_text, font_size, font_weight) * 1.15
@@ -683,41 +827,71 @@ def convert_text(elem: ET.Element, ctx: ConvertContext) -> str:
         except ValueError:
             pass
 
-    # Text rotation
+    # Text rotation. SVG's rotate(angle [cx cy]) rotates around (cx, cy), but
+    # DrawingML's <a:xfrm rot="..."> rotates the shape around its own center.
+    # When a pivot is given (and differs from the box center), translate the
+    # box so its center lands where SVG would place the rotated visual center —
+    # otherwise rotated y-axis labels etc. drift to the wrong location.
     text_rot = 0
     text_transform = elem.get('transform', '')
     if text_transform:
-        rot_match = re.search(r'rotate\(\s*([-\d.]+)', text_transform)
+        rot_match = re.search(
+            r'rotate\(\s*([-\d.]+)(?:[\s,]+([-\d.]+)[\s,]+([-\d.]+))?',
+            text_transform,
+        )
         if rot_match:
-            text_rot = int(float(rot_match.group(1)) * ANGLE_UNIT)
+            angle_deg = float(rot_match.group(1))
+            text_rot = int(angle_deg * ANGLE_UNIT)
+            if rot_match.group(2) is not None:
+                pivot_x = ctx_x(float(rot_match.group(2)), ctx)
+                pivot_y = ctx_y(float(rot_match.group(3)), ctx)
+                cx_box = box_x + box_w / 2
+                cy_box = box_y + box_h / 2
+                rad = math.radians(angle_deg)
+                dx = cx_box - pivot_x
+                dy = cy_box - pivot_y
+                new_cx = pivot_x + dx * math.cos(rad) - dy * math.sin(rad)
+                new_cy = pivot_y + dx * math.sin(rad) + dy * math.cos(rad)
+                box_x = new_cx - box_w / 2
+                box_y = new_cy - box_h / 2
 
     # Alignment
     algn_map = {'start': 'l', 'middle': 'ctr', 'end': 'r'}
     algn = algn_map.get(text_anchor, 'l')
 
     # Shadow effect
-    effect_xml = ''
+    shape_effect_xml = ''
+    text_effect_xml = ''
     filt_id = get_effective_filter_id(elem, ctx)
     if filt_id and filt_id in ctx.defs:
-        effect_xml = build_effect_xml(ctx.defs[filt_id])
+        filter_elem = ctx.defs[filt_id]
+        effect_kind = classify_filter_effect(filter_elem)
+        if effect_kind == 'glow':
+            text_effect_xml = build_effect_xml(filter_elem)
+        elif effect_kind == 'shadow':
+            shape_effect_xml = build_effect_xml(filter_elem)
 
     shape_id = ctx.next_id()
     rot_attr = f' rot="{text_rot}"' if text_rot else ''
 
-    runs_xml = '\n'.join(_build_run_xml(r, fonts, ctx) for r in runs)
+    runs_xml = '\n'.join(_build_run_xml(r, fonts, ctx, text_effect_xml) for r in runs)
+    off_x = px_to_emu(box_x)
+    off_y = px_to_emu(box_y)
+    ext_cx = px_to_emu(box_w)
+    ext_cy = px_to_emu(box_h)
 
-    return f'''<p:sp>
+    return ShapeResult(xml=f'''<p:sp>
 <p:nvSpPr>
 <p:cNvPr id="{shape_id}" name="TextBox {shape_id}"/>
 <p:cNvSpPr txBox="1"/><p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
-<a:xfrm{rot_attr}><a:off x="{px_to_emu(box_x)}" y="{px_to_emu(box_y)}"/>
-<a:ext cx="{px_to_emu(box_w)}" cy="{px_to_emu(box_h)}"/></a:xfrm>
+<a:xfrm{rot_attr}><a:off x="{off_x}" y="{off_y}"/>
+<a:ext cx="{ext_cx}" cy="{ext_cy}"/></a:xfrm>
 <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
 <a:noFill/>
 <a:ln><a:noFill/></a:ln>
-{effect_xml}
+{shape_effect_xml}
 </p:spPr>
 <p:txBody>
 <a:bodyPr wrap="none" lIns="0" tIns="0" rIns="0" bIns="0" anchor="t" anchorCtr="0">
@@ -729,45 +903,223 @@ def convert_text(elem: ET.Element, ctx: ConvertContext) -> str:
 {runs_xml}
 </a:p>
 </p:txBody>
-</p:sp>'''
+</p:sp>''', bounds_emu=(off_x, off_y, off_x + ext_cx, off_y + ext_cy))
+
+
+# ---------------------------------------------------------------------------
+# clipPath support (image clipping)
+# ---------------------------------------------------------------------------
+
+def _clip_commands_to_geom(
+    commands: list[PathCommand],
+    img_x: float, img_y: float,
+    img_w: float, img_h: float,
+    object_bbox: bool,
+) -> str:
+    """Convert clip path commands to DrawingML custGeom XML.
+
+    Coordinates are transformed relative to the image bounding box so that
+    (img_x, img_y) maps to (0, 0) and (img_x+img_w, img_y+img_h) maps to
+    (w_emu, h_emu).
+    """
+    w_emu = px_to_emu(img_w)
+    h_emu = px_to_emu(img_h)
+
+    if w_emu <= 0 or h_emu <= 0:
+        return '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>'
+
+    def _tx(x: float) -> int:
+        if object_bbox:
+            return int(x * w_emu)
+        return px_to_emu(x - img_x)
+
+    def _ty(y: float) -> int:
+        if object_bbox:
+            return int(y * h_emu)
+        return px_to_emu(y - img_y)
+
+    parts: list[str] = []
+    for cmd in commands:
+        if cmd.cmd == 'M':
+            parts.append(
+                f'<a:moveTo><a:pt x="{_tx(cmd.args[0])}" '
+                f'y="{_ty(cmd.args[1])}"/></a:moveTo>'
+            )
+        elif cmd.cmd == 'L':
+            parts.append(
+                f'<a:lnTo><a:pt x="{_tx(cmd.args[0])}" '
+                f'y="{_ty(cmd.args[1])}"/></a:lnTo>'
+            )
+        elif cmd.cmd == 'C':
+            pts = ''.join(
+                f'<a:pt x="{_tx(cmd.args[i])}" y="{_ty(cmd.args[i + 1])}"/>'
+                for i in range(0, 6, 2)
+            )
+            parts.append(f'<a:cubicBezTo>{pts}</a:cubicBezTo>')
+        elif cmd.cmd == 'Z':
+            parts.append('<a:close/>')
+
+    path_inner = '\n'.join(parts)
+    return f'''<a:custGeom>
+<a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/>
+<a:rect l="l" t="t" r="r" b="b"/>
+<a:pathLst><a:path w="{w_emu}" h="{h_emu}">
+{path_inner}
+</a:path></a:pathLst>
+</a:custGeom>'''
+
+
+def _resolve_clip_geometry(
+    elem: ET.Element,
+    ctx: ConvertContext,
+    raw_x: float, raw_y: float,
+    raw_w: float, raw_h: float,
+) -> str:
+    """Resolve clip-path on an image element to DrawingML geometry XML.
+
+    Supports:
+      - circle / ellipse  → prstGeom ellipse
+      - rect with rx/ry   → prstGeom roundRect
+      - path / polygon     → custGeom
+
+    Args:
+        elem: SVG element bearing a clip-path attribute.
+        ctx:  Conversion context (carries defs).
+        raw_x, raw_y: Image position in SVG space (pre-ctx-transform).
+        raw_w, raw_h: Image dimensions in SVG space (pre-ctx-transform).
+
+    Returns:
+        DrawingML geometry XML string.
+    """
+    DEFAULT = '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>'
+
+    clip_ref = elem.get('clip-path', '')
+    if not clip_ref or clip_ref == 'none':
+        return DEFAULT
+
+    clip_id = resolve_url_id(clip_ref)
+    if not clip_id or clip_id not in ctx.defs:
+        return DEFAULT
+
+    clip_elem = ctx.defs[clip_id]
+    clip_tag = clip_elem.tag.replace(f'{{{SVG_NS}}}', '')
+    if clip_tag != 'clipPath':
+        return DEFAULT
+
+    # Find the first shape child of the clipPath
+    shape = None
+    for child in clip_elem:
+        child_tag = child.tag.replace(f'{{{SVG_NS}}}', '')
+        if child_tag in ('circle', 'ellipse', 'rect', 'path', 'polygon'):
+            shape = child
+            break
+
+    if shape is None:
+        return DEFAULT
+
+    shape_tag = shape.tag.replace(f'{{{SVG_NS}}}', '')
+    is_obb = clip_elem.get('clipPathUnits') == 'objectBoundingBox'
+
+    # --- Circle / Ellipse → preset ellipse ---
+    if shape_tag in ('circle', 'ellipse'):
+        return '<a:prstGeom prst="ellipse"><a:avLst/></a:prstGeom>'
+
+    # --- Rect with rx/ry → preset roundRect ---
+    if shape_tag == 'rect':
+        rx = _f(shape.get('rx'))
+        ry = _f(shape.get('ry'), rx)
+        if rx <= 0 and ry <= 0:
+            return DEFAULT  # plain rect clip is a no-op
+        r = max(rx, ry)
+        if is_obb:
+            r = r * min(raw_w, raw_h)
+        shorter = min(raw_w, raw_h)
+        if shorter <= 0:
+            return DEFAULT
+        adj = int(min(r / (shorter / 2), 1.0) * 50000)
+        return (
+            f'<a:prstGeom prst="roundRect"><a:avLst>'
+            f'<a:gd name="adj" fmla="val {adj}"/>'
+            f'</a:avLst></a:prstGeom>'
+        )
+
+    # --- Path → custGeom ---
+    if shape_tag == 'path':
+        d = shape.get('d', '')
+        if not d:
+            return DEFAULT
+        commands = parse_svg_path(d)
+        commands = svg_path_to_absolute(commands)
+        commands = normalize_path_commands(commands)
+        if not commands:
+            return DEFAULT
+        return _clip_commands_to_geom(
+            commands, raw_x, raw_y, raw_w, raw_h, is_obb,
+        )
+
+    # --- Polygon → custGeom ---
+    if shape_tag == 'polygon':
+        pts = _parse_points(shape.get('points', ''))
+        if not pts:
+            return DEFAULT
+        commands = [PathCommand('M', [pts[0][0], pts[0][1]])]
+        for px_, py_ in pts[1:]:
+            commands.append(PathCommand('L', [px_, py_]))
+        commands.append(PathCommand('Z', []))
+        return _clip_commands_to_geom(
+            commands, raw_x, raw_y, raw_w, raw_h, is_obb,
+        )
+
+    return DEFAULT
 
 
 # ---------------------------------------------------------------------------
 # image
 # ---------------------------------------------------------------------------
 
-def convert_image(elem: ET.Element, ctx: ConvertContext) -> str:
-    """Convert SVG <image> to DrawingML picture element."""
+def convert_image(elem: ET.Element, ctx: ConvertContext) -> ShapeResult | None:
+    """Convert SVG <image> to DrawingML picture element.
+
+    Supports clip-path attribute: when present, the clipPath shape is mapped
+    to DrawingML picture geometry (prstGeom or custGeom) so the image is
+    natively clipped in PowerPoint.
+    """
     href = elem.get('href') or elem.get(f'{{{XLINK_NS}}}href')
     if not href:
-        return ''
+        return None
 
-    x = ctx_x(_f(elem.get('x')), ctx)
-    y = ctx_y(_f(elem.get('y')), ctx)
-    w = ctx_w(_f(elem.get('width')), ctx)
-    h = ctx_h(_f(elem.get('height')), ctx)
+    # Raw coordinates (pre-context-transform) for clip path calculations
+    raw_x = _f(elem.get('x'))
+    raw_y = _f(elem.get('y'))
+    raw_w = _f(elem.get('width'))
+    raw_h = _f(elem.get('height'))
+
+    x = ctx_x(raw_x, ctx)
+    y = ctx_y(raw_y, ctx)
+    w = ctx_w(raw_w, ctx)
+    h = ctx_h(raw_h, ctx)
 
     if w <= 0 or h <= 0:
-        return ''
+        return None
 
     # Extract image data
     if href.startswith('data:'):
         match = re.match(r'data:image/(\w+);base64,(.+)', href, re.DOTALL)
         if not match:
-            return ''
+            return None
         img_format = match.group(1).lower()
         if img_format == 'jpeg':
             img_format = 'jpg'
         img_data = base64.b64decode(match.group(2))
     else:
         if ctx.svg_dir is None:
-            return ''
+            return None
         img_path = ctx.svg_dir / href
         if not img_path.exists():
             img_path = ctx.svg_dir.parent / href
         if not img_path.exists():
             print(f'  Warning: External image not found: {href}')
-            return ''
+            return None
         img_format = img_path.suffix.lstrip('.').lower()
         if img_format == 'jpeg':
             img_format = 'jpg'
@@ -792,9 +1144,16 @@ def convert_image(elem: ET.Element, ctx: ConvertContext) -> str:
             rot = int(float(r_match.group(1)) * ANGLE_UNIT)
     rot_attr = f' rot="{rot}"' if rot else ''
 
-    shape_id = ctx.next_id()
+    # Resolve clip-path → DrawingML geometry
+    clip_geom = _resolve_clip_geometry(elem, ctx, raw_x, raw_y, raw_w, raw_h)
 
-    return f'''<p:pic>
+    shape_id = ctx.next_id()
+    off_x = px_to_emu(x)
+    off_y = px_to_emu(y)
+    ext_cx = px_to_emu(w)
+    ext_cy = px_to_emu(h)
+
+    return ShapeResult(xml=f'''<p:pic>
 <p:nvPicPr>
 <p:cNvPr id="{shape_id}" name="Image {shape_id}"/>
 <p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr>
@@ -805,18 +1164,18 @@ def convert_image(elem: ET.Element, ctx: ConvertContext) -> str:
 <a:stretch><a:fillRect/></a:stretch>
 </p:blipFill>
 <p:spPr>
-<a:xfrm{rot_attr}><a:off x="{px_to_emu(x)}" y="{px_to_emu(y)}"/>
-<a:ext cx="{px_to_emu(w)}" cy="{px_to_emu(h)}"/></a:xfrm>
-<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+<a:xfrm{rot_attr}><a:off x="{off_x}" y="{off_y}"/>
+<a:ext cx="{ext_cx}" cy="{ext_cy}"/></a:xfrm>
+{clip_geom}
 </p:spPr>
-</p:pic>'''
+</p:pic>''', bounds_emu=(off_x, off_y, off_x + ext_cx, off_y + ext_cy))
 
 
 # ---------------------------------------------------------------------------
 # ellipse
 # ---------------------------------------------------------------------------
 
-def convert_ellipse(elem: ET.Element, ctx: ConvertContext) -> str:
+def convert_ellipse(elem: ET.Element, ctx: ConvertContext) -> ShapeResult | None:
     """Convert SVG <ellipse> to DrawingML ellipse shape."""
     cx_ = ctx_x(_f(elem.get('cx')), ctx)
     cy_ = ctx_y(_f(elem.get('cy')), ctx)
@@ -824,7 +1183,7 @@ def convert_ellipse(elem: ET.Element, ctx: ConvertContext) -> str:
     ry = _f(elem.get('ry')) * ctx.scale_y
 
     if rx <= 0 or ry <= 0:
-        return ''
+        return None
 
     x = cx_ - rx
     y = cy_ - ry
@@ -846,8 +1205,15 @@ def convert_ellipse(elem: ET.Element, ctx: ConvertContext) -> str:
             rot = int(float(r_match.group(1)) * ANGLE_UNIT)
 
     shape_id = ctx.next_id()
-    return _wrap_shape(
-        shape_id, f'Ellipse {shape_id}',
-        px_to_emu(x), px_to_emu(y), px_to_emu(w), px_to_emu(h),
-        geom, fill, stroke, rot=rot,
+    off_x = px_to_emu(x)
+    off_y = px_to_emu(y)
+    ext_cx = px_to_emu(w)
+    ext_cy = px_to_emu(h)
+    return ShapeResult(
+        xml=_wrap_shape(
+            shape_id, f'Ellipse {shape_id}',
+            off_x, off_y, ext_cx, ext_cy,
+            geom, fill, stroke, rot=rot,
+        ),
+        bounds_emu=(off_x, off_y, off_x + ext_cx, off_y + ext_cy),
     )

@@ -28,6 +28,8 @@ Receive the "Image Resource List" from the Design Specification & Content Outlin
   |----------|-----------|---------|------|--------|----------------------|
   | cover_bg.png | 1920x1080 | Cover background | Background | Pending | Modern tech abstract background, deep blue gradient |
 
+  Status values are defined in [`svg-image-embedding.md`](svg-image-embedding.md). Image_Generator consumes only `Pending` rows and changes them to `Generated` or `Needs-Manual`.
+
 ### Output
 
 | Deliverable | Path / Description | Requirements |
@@ -35,7 +37,7 @@ Receive the "Image Resource List" from the Design Specification & Content Outlin
 | Prompt document | `project/images/image_prompts.md` | **Must** be saved using file write tool — cannot just be output in conversation |
 | Optimized prompts | Individual prompt per image | Directly usable with AI image generation tools; doubles as alt text |
 | Image files | `project/images/` directory | Named per the resource list filenames |
-| Updated list | Status changes | "Pending" → "Generated" |
+| Updated list | Status changes | `Pending` -> `Generated` (success) or `Pending` -> `Needs-Manual` (generation attempted and failed) |
 
 ---
 
@@ -83,6 +85,12 @@ Every image must be output in the following format:
 | General Versatile | Modern illustration, flat design | `modern`, `flat design`, `gradient`, `vibrant colors` |
 | General Consulting | Clean professional, corporate | `professional`, `clean`, `corporate`, `minimalist` |
 | Top Consulting | Premium minimal, abstract geometric | `premium`, `sophisticated`, `geometric`, `abstract`, `elegant` |
+| Technology / SaaS | Futuristic, digital | `futuristic`, `digital`, `tech grid`, `circuit pattern`, `neon accents`, `dark background` |
+| Education / Training | Friendly, instructional | `friendly`, `instructional`, `whiteboard style`, `pastel colors`, `simple shapes` |
+| Marketing / Branding | Bold, energetic | `bold`, `energetic`, `dynamic composition`, `vivid colors`, `action-oriented` |
+| Healthcare / Medical | Clean, reassuring | `clean`, `clinical`, `soft blue-green palette`, `organic curves`, `reassuring` |
+| Finance / Banking | Conservative, trustworthy | `conservative`, `trustworthy`, `blue-gray palette`, `structured`, `precise` |
+| Creative / Design | Artistic, experimental | `artistic`, `experimental`, `asymmetric`, `textured`, `hand-crafted feel` |
 
 ### 2.4 Color Integration Method
 
@@ -107,6 +115,26 @@ Full directive: "color palette: deep navy blue (#1E3A5F), light gray (#F8F9FA), 
 | Story | 9:16 | 1080x1920 |
 
 > Supported aspect ratios: `1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, `21:9` (Gemini also supports `1:4`, `1:8`, `4:1`, `8:1`)
+
+### 2.6 Multi-Image Coherence Strategy
+
+When generating multiple images for a single deck, visual coherence is critical. Use a **Deck Style Anchor** — a shared prefix of 15-25 words prepended to every image prompt.
+
+**Construction**: Combine style keywords (Section 2.3) + color directive (Section 2.4) + quality directive into one reusable prefix.
+
+**Example**:
+```
+Deck Style Anchor:
+"modern flat design illustration, color palette: deep navy (#1E3A5F), light gray (#F8F9FA), gold accent (#D4AF37), clean minimalist, high quality, 4K"
+
+Image 1 prompt: [Deck Style Anchor], abstract technology network showing connected nodes...
+Image 2 prompt: [Deck Style Anchor], team of professionals collaborating at a desk...
+Image 3 prompt: [Deck Style Anchor], growth chart with upward trending line...
+```
+
+**Exception**: Background images may replace style keywords with `background`, `backdrop`, `negative space for text overlay` while keeping the same color directive. This ensures color consistency without compromising background functionality.
+
+**Rule**: Define the Deck Style Anchor once in the prompt document header (Section 5), then reference it in every individual prompt.
 
 ---
 
@@ -221,7 +249,16 @@ For each image with "Pending" status:
 
 > Prerequisite: Section 4.2 must be complete; `images/image_prompts.md` must exist
 
-#### Method 1: Unified CLI Tool (Recommended)
+#### Path Selection (Deterministic)
+
+| Trigger | Path | Mechanism |
+|---------|------|-----------|
+| **Default** — no explicit override from the user | **Path A**: `image_gen.py` CLI | Uses `.env` `IMAGE_BACKEND` configuration |
+| **User explicitly names the host's native image tool** (e.g. "use Codex's built-in image generation", "use Antigravity's image tool") | **Path B**: Host-native tool | Agent invokes the host's own image generation capability and saves outputs to `project/images/` |
+
+Agent must NOT silently switch paths based on perceived host capability. Path B is triggered only by an explicit user instruction for this project or this generation batch. In the absence of such instruction, Path A is the unconditional default.
+
+#### Path A — `image_gen.py` CLI (Default)
 
 ```bash
 python3 scripts/image_gen.py "your prompt" \
@@ -239,7 +276,7 @@ python3 scripts/image_gen.py "your prompt" \
 | `--image_size` | - | Size (`1K`/`2K`/`4K`) | `1K` |
 | `--output` | `-o` | Output directory | Current directory |
 | `--filename` | `-f` | Output filename (no extension) | Auto-named |
-| `--backend` | `-b` | Override backend (`gemini`/`openai`/`stability`/`bfl`/`ideogram`/`qwen`/`zhipu`/`volcengine`/`siliconflow`/`fal`/`replicate`) | None |
+| `--backend` | `-b` | Override backend (see `--list-backends` for options) | None |
 | `--model` | `-m` | Model name | Backend default |
 | `--list-backends` | - | Print support tiers and exit | `false` |
 
@@ -253,47 +290,54 @@ Precedence:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `IMAGE_BACKEND` | Required | `gemini` / `openai` / `stability` / `bfl` / `ideogram` / `qwen` / `zhipu` / `volcengine` / `siliconflow` / `fal` / `replicate` |
+| `IMAGE_BACKEND` | Required | Backend identifier; run `image_gen.py --list-backends` for the current set |
 | `{PROVIDER}_API_KEY` | Required | Provider-specific API key, e.g. `GEMINI_API_KEY`, `ZHIPU_API_KEY` |
 | `{PROVIDER}_BASE_URL` | Optional | Provider-specific custom endpoint |
 | `{PROVIDER}_MODEL` | Optional | Provider-specific model override |
 
-> Use provider-specific names only: `GEMINI_API_KEY`, `OPENAI_API_KEY`, `STABILITY_API_KEY`, `BFL_API_KEY`, `IDEOGRAM_API_KEY`, `QWEN_API_KEY` / `DASHSCOPE_API_KEY`, `ZHIPU_API_KEY` / `BIGMODEL_API_KEY`, `VOLCENGINE_API_KEY` / `ARK_API_KEY`, `SILICONFLOW_API_KEY`, `FAL_KEY`, and `REPLICATE_API_TOKEN`.
+> Use provider-specific names only (e.g. `GEMINI_API_KEY`, `OPENAI_API_KEY`). See `.env.example` for the full set per backend.
 
 > `IMAGE_API_KEY`, `IMAGE_MODEL`, and `IMAGE_BASE_URL` are intentionally unsupported.
 
 > If `.env` or the current environment contains multiple provider configs, `IMAGE_BACKEND` explicitly selects the active one.
 
-**Support tiers (recommended usage)**:
-- Core: `gemini`, `openai`, `qwen`, `zhipu`, `volcengine`
-- Extended: `stability`, `bfl`, `ideogram`
-- Experimental: `siliconflow`, `fal`, `replicate`
+**Support tiers (recommended usage)**: Core / Extended / Experimental. Run `image_gen.py --list-backends` for the current assignments.
 
 **Generation pacing (mandatory)**:
 - Execute only one generation command at a time; wait for file confirmation before the next
 - Recommend 2-5 second intervals between images to avoid concurrency failures
-- If failure/no output occurs, halt the queue, check `IMAGE_BACKEND`, provider-specific credentials, and the output directory, then resume
 
-#### Method 2: Auto-generation
+#### Path B — Host-Native Image Tool (On Explicit User Request)
 
-Directly call image generation API, download and save to `project/images/` directory.
+Triggered only when the user explicitly asks the skill to use the host's built-in image generation (e.g. Codex, Antigravity, or any other host that provides a native image tool).
 
-#### Method 3: Gemini Web Interface
+- Agent invokes the host's native image tool directly; prompts come from the same `image_prompts.md`
+- Outputs **must** land at `project/images/<filename-from-resource-list>` with dimensions matching the Image Resource List
+- Executor downstream is path-agnostic — no spec change required between Path A and Path B
 
-1. Generate images in [Gemini](https://gemini.google.com/)
-2. Select **Download full size** for high-resolution version
-3. Remove watermark: `python3 scripts/gemini_watermark_remover.py <image_path>`
-4. Place processed images in `project/images/` directory
+#### Failure Handling (Applies to Both Paths)
 
-#### Method 4: Manual Generation (Other AI Platforms)
+If generation fails for a given image:
 
-Prompts are saved in `images/image_prompts.md`; inform the user of the file location. User generates on Midjourney, DALL-E, Stable Diffusion, etc. and places images in `project/images/` directory.
+1. **Retry once.** If the retry also fails, stop attempting that image — do not loop further.
+2. **Do NOT halt the pipeline.** Report the failures to the user: list the affected filenames and the error reason, and ask the user to generate those images manually and place them at `project/images/<filename>` with the exact filename from the resource list.
+3. **Mark the affected rows** in the Image Resource List as `Needs-Manual` (not `Generated`).
+4. **Proceed to the Executor phase.** Executor consumes whatever is in `project/images/` at its runtime; missing files are handled downstream (placeholder or user prompt), not by blocking here.
+
+If the user chooses to generate manually on a platform that watermarks outputs (e.g. Gemini web), the repository includes `scripts/gemini_watermark_remover.py` as a utility.
+
+#### Guardrails (Both Paths)
+
+- Agent must NOT claim an image is generated without producing an actual file at the expected path
+- Agent must NOT mark an image as `Needs-Manual` without a real generation attempt having failed
+- Status transitions are evidence-driven: `Pending` -> `Generated` (file exists at expected path) or `Pending` -> `Needs-Manual` (generation attempted and failed after one retry)
 
 ### 4.4 Verification Phase
 
-- Confirm all images are saved to `images/` directory
+- Confirm all successfully generated images are saved to `images/` directory
 - Check filenames match the resource list
-- Update image resource list status to "Generated"
+- Update image resource list: `Generated` for files present at the expected path, `Needs-Manual` for rows whose generation failed after one retry
+- Any `Needs-Manual` rows must have been reported to the user with filename and error reason before this phase completes
 
 ---
 
@@ -340,7 +384,7 @@ Abstract futuristic background with flowing digital waves...
 ## Usage Instructions
 
 1. Copy the "Prompt" above into an AI image generation tool
-2. Recommended platforms: Midjourney / DALL-E 3 / Gemini / Stable Diffusion
+2. Recommended platforms: gpt-image-2 / Midjourney / DALL-E 3 / Gemini / Stable Diffusion
 3. Rename generated images to the corresponding filenames
 4. Place in the `images/` directory
 ```
@@ -380,7 +424,21 @@ Abstract futuristic background with flowing digital waves...
 
 ### When Images Are Unsatisfactory
 
-Provide prompt variants for user selection: Variant A (more abstract), Variant B (more concrete), Variant C (different color tone).
+Diagnose the problem category and apply a targeted prompt fix:
+
+| Problem | Diagnosis | Prompt Adjustment |
+|---------|-----------|-------------------|
+| Wrong style | Image looks photorealistic when flat design was intended | Change style directive: replace `photography` with `flat design illustration` |
+| Wrong colors | Colors don't match the design spec palette | Strengthen color directive: add explicit HEX codes, repeat color names |
+| Wrong composition | Subject is off-center or layout doesn't fit the slide | Adjust composition directive: add `centered composition`, `rule of thirds`, or `wide negative space on left` |
+| Wrong subject | Image depicts something different from what was described | Rewrite subject description with more specificity and concrete details |
+| Low quality | Image is blurry, has artifacts, or lacks detail | Add `highly detailed, sharp focus, professional quality, 8K resolution` |
+
+**Variant workflow**:
+1. Keep the original prompt as "Variant A" in `image_prompts.md`
+2. Create modified prompt as "Variant B" with targeted fixes from the table above
+3. If needed, create "Variant C" with a different stylistic approach
+4. Label all variants clearly so the user can compare results
 
 ---
 

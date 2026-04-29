@@ -45,8 +45,17 @@ def safe_print(text: str) -> None:
     try:
         print(text)
     except UnicodeEncodeError:
-        text = text.replace('✅', '[OK]').replace('❌', '[ERROR]')
-        text = text.replace('📁', '[DIR]').replace('📄', '[FILE]')
+        replacements = {
+            chr(0x23F3): "[..]",
+            chr(0x2705): "[DONE]",
+            chr(0x274C): "[ERROR]",
+            chr(0x26A0) + chr(0xFE0F): "[WARN]",
+            chr(0x1F4C1): "[DIR]",
+            chr(0x1F4C4): "[FILE]",
+            chr(0x1F4E6): "[OK]",
+        }
+        for source, target in replacements.items():
+            text = text.replace(source, target)
         print(text)
 
 
@@ -97,6 +106,8 @@ def finalize_project(
     options: dict[str, bool],
     dry_run: bool = False,
     quiet: bool = False,
+    compress: bool = False,
+    max_dimension: int | None = None,
 ) -> bool:
     """
     Finalize SVG files in the project
@@ -106,6 +117,8 @@ def finalize_project(
         options: Processing options dictionary
         dry_run: Preview only, do not execute
         quiet: Quiet mode, reduce output
+        compress: Compress images before embedding
+        max_dimension: Downscale images exceeding this dimension
     """
     svg_output = project_dir / 'svg_output'
     svg_final = project_dir / 'svg_final'
@@ -189,7 +202,9 @@ def finalize_project(
             safe_print("[4/6] Embedding images...")
         images_count = 0
         for svg_file in svg_final.glob('*.svg'):
-            count, _ = embed_images_in_svg(str(svg_file), dry_run=False)
+            count, _ = embed_images_in_svg(str(svg_file), dry_run=False,
+                                           compress=compress,
+                                           max_dimension=max_dimension)
             images_count += count
         if not quiet:
             if images_count > 0:
@@ -265,6 +280,10 @@ Processing options (for --only):
                         help='Preview only, do not execute')
     parser.add_argument('--quiet', '-q', action='store_true',
                         help='Quiet mode, reduce output')
+    parser.add_argument('--compress', action='store_true',
+                        help='Compress images before embedding (JPEG quality=85, PNG optimize)')
+    parser.add_argument('--max-dimension', type=int, default=None,
+                        help='Downscale images exceeding this dimension on either axis (e.g., 2560)')
 
     args = parser.parse_args()
 
@@ -294,7 +313,9 @@ Processing options (for --only):
             'fix_rounded': True,
         }
 
-    success = finalize_project(args.project_dir, options, args.dry_run, args.quiet)
+    success = finalize_project(args.project_dir, options, args.dry_run, args.quiet,
+                               compress=args.compress,
+                               max_dimension=args.max_dimension)
     sys.exit(0 if success else 1)
 
 

@@ -211,15 +211,16 @@ To adapt to other medical institution branding, replace the corresponding values
 
 | Prohibited Item      | Alternative                    |
 | -------------------- | ------------------------------ |
-| `clipPath`           | Do not use clipping            |
-| `mask`               | Do not use masking             |
+| `clipPath` | Allowed only on `<image>` under `shared-standards.md` §1.2 |
+| `mask` | Do not use masking |
 | `<style>`            | Use inline styles              |
 | `class`              | Use inline attributes (`id` inside `<defs>` is allowed) |
 | `foreignObject`      | Use `<tspan>` for wrapping     |
 | `textPath`           | Use standard `<text>`          |
 | `animate*` / `set`   | Do not use animations          |
-| `marker-end`         | Use `<polygon>` for arrows     |
 | `<g opacity>`        | Set opacity on each element individually |
+
+> `marker-start` / `marker-end` are conditionally allowed — see `shared-standards.md` §1.1 (marker must be in `<defs>`, `orient="auto"`, shape = triangle / diamond / oval). The converter maps them to native DrawingML arrow heads.
 
 ---
 

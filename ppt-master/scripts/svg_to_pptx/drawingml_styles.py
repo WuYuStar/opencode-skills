@@ -132,6 +132,156 @@ def build_fill_xml(
     return '<a:noFill/>'
 
 
+# ---------------------------------------------------------------------------
+# Marker (arrow-head) support
+# ---------------------------------------------------------------------------
+
+# Matches an (x, y) pair in a path "d" attribute: "M 10, 20" / "L -5 7.5" / etc.
+_MARKER_POINT_RE = re.compile(
+    r'[MLml]\s*(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)'
+)
+_MARKER_POLY_POINT_RE = re.compile(
+    r'(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)'
+)
+
+
+def _marker_size_buckets(w_attr: float, h_attr: float) -> tuple[str, str]:
+    """Map SVG markerWidth / markerHeight to DrawingML (w, len) buckets.
+
+    DrawingML arrow-end sizing is categorical: sm / med / lg.
+    Width (perpendicular to the line) maps from markerHeight;
+    length (along the line) maps from markerWidth.
+    """
+
+    def bucket(v: float) -> str:
+        if v < 6:
+            return 'sm'
+        if v > 12:
+            return 'lg'
+        return 'med'
+
+    return bucket(h_attr), bucket(w_attr)
+
+
+def _classify_marker(marker_elem: ET.Element) -> tuple[str, str, str] | None:
+    """Classify an SVG <marker> into a DrawingML line-end preset.
+
+    Returns (type, w, len) where:
+        type in {'triangle', 'stealth', 'diamond', 'oval', 'arrow'}
+        w, len in {'sm', 'med', 'lg'}
+    or None if the marker cannot be classified.
+
+    Current coverage (80/20): triangles (3-vertex closed paths or polygons),
+    diamonds (4-vertex symmetric), and circles / ellipses. Anything else
+    returns None so the caller can warn and skip.
+    """
+    mw = _f(marker_elem.get('markerWidth'), 3.0)
+    mh = _f(marker_elem.get('markerHeight'), 3.0)
+    w_bucket, len_bucket = _marker_size_buckets(mw, mh)
+
+    for child in marker_elem:
+        tag = child.tag.replace(f'{{{SVG_NS}}}', '')
+
+        if tag in ('circle', 'ellipse'):
+            return ('oval', w_bucket, len_bucket)
+
+        if tag == 'path':
+            d = child.get('d', '')
+            if not d:
+                continue
+            points = _MARKER_POINT_RE.findall(d)
+            n = len(points)
+            closed = bool(re.search(r'[Zz]\s*$', d.strip()))
+            if n == 3 and closed:
+                return ('triangle', w_bucket, len_bucket)
+            if n == 4 and closed:
+                return ('diamond', w_bucket, len_bucket)
+            continue
+
+        if tag in ('polygon', 'polyline'):
+            pts_attr = child.get('points', '')
+            pts = _MARKER_POLY_POINT_RE.findall(pts_attr)
+            n = len(pts)
+            if n == 3:
+                return ('triangle', w_bucket, len_bucket)
+            if n == 4:
+                return ('diamond', w_bucket, len_bucket)
+            continue
+
+    return None
+
+
+def _emit_line_end(
+    elem: ET.Element,
+    ctx: ConvertContext,
+    which: str,
+) -> str:
+    """Build <a:headEnd> or <a:tailEnd> XML for an element's marker reference.
+
+    Args:
+        which: 'head' (SVG marker-start) or 'tail' (SVG marker-end).
+
+    Returns empty string if no marker, cannot resolve, or cannot classify.
+    """
+    attr = 'marker-start' if which == 'head' else 'marker-end'
+    ref = _get_attr(elem, attr, ctx)
+    if not ref or ref == 'none':
+        return ''
+
+    marker_id = resolve_url_id(ref)
+    if not marker_id or marker_id not in ctx.defs:
+        return ''
+
+    marker_elem = ctx.defs[marker_id]
+    tag = marker_elem.tag.replace(f'{{{SVG_NS}}}', '')
+    if tag != 'marker':
+        # ID collision with non-marker defs entry; ignore.
+        return ''
+
+    cls = _classify_marker(marker_elem)
+    if cls is None:
+        print(
+            f'  Warning: marker "{marker_id}" shape cannot be classified; '
+            f'skipping (supported: triangle, diamond, oval)'
+        )
+        return ''
+
+    typ, w_bucket, len_bucket = cls
+
+    # Reclassify size buckets based on markerUnits semantics:
+    #
+    # markerUnits="strokeWidth" (SVG default):
+    #   markerWidth IS a ratio to stroke-width, and DrawingML headEnd/tailEnd
+    #   also scale proportionally with line width.  We should compare the ratio
+    #   (markerWidth) directly against ratio-based thresholds — do NOT multiply
+    #   by stroke-width, because that double-counts the scaling.
+    #   Empirical DrawingML arrow ratios:
+    #     sm  ≈ 1.5×  stroke-width  →  markerWidth ≤ 2.0
+    #     med ≈ 2.5×  stroke-width  →  markerWidth  2.0 – 3.5
+    #     lg  ≈ 3.5×  stroke-width  →  markerWidth ≥ 3.5
+    #
+    # markerUnits="userSpaceOnUse":
+    #   markerWidth/Height are absolute pixel values – keep the existing
+    #   absolute-pixel thresholds from _marker_size_buckets (6 / 12).
+    marker_units = marker_elem.get('markerUnits', 'strokeWidth')
+    if marker_units != 'userSpaceOnUse':
+        mw = _f(marker_elem.get('markerWidth'), 3.0)
+        mh = _f(marker_elem.get('markerHeight'), 3.0)
+
+        def _ratio_bucket(v: float) -> str:
+            if v <= 2.0:
+                return 'sm'
+            if v >= 3.5:
+                return 'lg'
+            return 'med'
+
+        w_bucket = _ratio_bucket(mh)    # h → perpendicular width
+        len_bucket = _ratio_bucket(mw)  # w → length along line
+
+    dml_tag = 'headEnd' if which == 'head' else 'tailEnd'
+    return f'<a:{dml_tag} type="{typ}" w="{w_bucket}" len="{len_bucket}"/>'
+
+
 def build_stroke_xml(
     elem: ET.Element,
     ctx: ConvertContext,
@@ -182,11 +332,18 @@ def build_stroke_xml(
     elif linejoin == 'miter':
         join_xml = '<a:miter lim="800000"/>'
 
+    # Line-end markers (SVG marker-start / marker-end → <a:headEnd>/<a:tailEnd>)
+    # DrawingML schema order is: fill → prstDash → join → headEnd → tailEnd,
+    # so these must be appended after join_xml.
+    head_end = _emit_line_end(elem, ctx, 'head')
+    tail_end = _emit_line_end(elem, ctx, 'tail')
+    line_ends = head_end + tail_end
+
     # Gradient stroke
     grad_id = resolve_url_id(stroke)
     if grad_id and grad_id in ctx.defs:
         grad_fill = build_gradient_fill(ctx.defs[grad_id], opacity)
-        return f'<a:ln w="{width_emu}"{cap_attr}>{grad_fill}{dash_xml}{join_xml}</a:ln>'
+        return f'<a:ln w="{width_emu}"{cap_attr}>{grad_fill}{dash_xml}{join_xml}{line_ends}</a:ln>'
 
     # Solid color stroke
     color = parse_hex_color(stroke)
@@ -198,7 +355,7 @@ def build_stroke_xml(
         alpha_xml = f'<a:alpha val="{int(opacity * 100000)}"/>'
 
     return f'''<a:ln w="{width_emu}"{cap_attr}>
-<a:solidFill><a:srgbClr val="{color}">{alpha_xml}</a:srgbClr></a:solidFill>{dash_xml}{join_xml}
+<a:solidFill><a:srgbClr val="{color}">{alpha_xml}</a:srgbClr></a:solidFill>{dash_xml}{join_xml}{line_ends}
 </a:ln>'''
 
 
@@ -252,8 +409,57 @@ def _parse_filter_params(
     }
 
 
+def _infer_shadow_alignment(dx: float, dy: float, threshold: float = 0.5) -> str:
+    """Infer outer shadow alignment from the SVG offset vector.
+
+    DrawingML applies alignment before blur/offset transforms, so we anchor the
+    shadow opposite to the dominant offset direction:
+    - diagonal offsets map to the opposite corner
+    - pure vertical offsets stay centered, matching common PPT shadow presets
+    - pure horizontal offsets anchor to the opposite side
+    """
+    if abs(dx) < threshold and abs(dy) < threshold:
+        return 'ctr'
+    if abs(dx) < threshold:
+        return 'ctr'
+    if abs(dy) < threshold:
+        return 'l' if dx > 0 else 'r'
+    if dx > 0 and dy > 0:
+        return 'tl'
+    if dx < 0 and dy > 0:
+        return 'tr'
+    if dx > 0 and dy < 0:
+        return 'bl'
+    return 'br'
+
+
+def _shadow_dir_angle(dx: float, dy: float) -> int:
+    """Convert an SVG offset vector to DrawingML clockwise angle units.
+
+    OOXML angles are expressed in 60,000ths of a degree, with positive angles
+    rotating clockwise toward the positive Y axis. SVG uses the same screen
+    coordinate orientation (positive Y points downward), so the raw screen-space
+    vector angle can be mapped directly with atan2(dy, dx).
+    """
+    if abs(dx) < 0.001 and abs(dy) < 0.001:
+        return 0
+    angle_deg = math.degrees(math.atan2(dy, dx)) % 360
+    return int(angle_deg * ANGLE_UNIT)
+
+
 def build_shadow_xml(filter_elem: ET.Element) -> str:
-    """Build <a:effectLst> with <a:outerShdw> from SVG filter element."""
+    """Build <a:effectLst> with <a:outerShdw> from SVG filter element.
+
+    SVG-to-DrawingML shadow mapping notes:
+    - SVG feGaussianBlur stdDeviation (σ) maps to DrawingML blurRad using a
+      2.0× scale. Rationale: σ is a standard deviation whose visual radius
+      is ~3σ, while DrawingML blurRad is an outer-spread pixel distance.
+      A 1.0× scale makes PowerPoint render sharp, concentrated shadows
+      ("heavy" visual). 2.0× matches the CSS drop-shadow↔box-shadow
+      convention and produces softer diffusion closer to the SVG preview.
+    - The algn attribute is inferred from the offset direction so that
+      the shadow aligns naturally with the shape edge.
+    """
     if filter_elem is None:
         return ''
 
@@ -265,13 +471,17 @@ def build_shadow_xml(filter_elem: ET.Element) -> str:
     if not p['has_offset']:
         dy = 4.0
 
-    blur_rad = px_to_emu(std_dev * 2)
+    blur_rad = px_to_emu(std_dev * 2.0)
     dist = px_to_emu(math.sqrt(dx * dx + dy * dy))
-    dir_angle = int(((90 + math.degrees(math.atan2(dy, max(dx, 0.001)))) % 360) * ANGLE_UNIT)
-    alpha_val = int(p['opacity'] * 100000)
+    dir_angle = _shadow_dir_angle(dx, dy)
+    # PowerPoint renders outerShdw alpha slightly heavier than SVG's filter
+    # composite (different blending path). Scale by 0.75 to match the SVG
+    # preview after blur has been corrected to 2.0× σ.
+    alpha_val = int(p['opacity'] * 75000)
+    algn = _infer_shadow_alignment(dx, dy)
 
     return f'''<a:effectLst>
-<a:outerShdw blurRad="{blur_rad}" dist="{dist}" dir="{dir_angle}" algn="tl" rotWithShape="0">
+<a:outerShdw blurRad="{blur_rad}" dist="{dist}" dir="{dir_angle}" algn="{algn}" rotWithShape="0">
 <a:srgbClr val="{p['color']}"><a:alpha val="{alpha_val}"/></a:srgbClr>
 </a:outerShdw>
 </a:effectLst>'''
@@ -287,7 +497,7 @@ def build_glow_xml(filter_elem: ET.Element) -> str:
         return ''
 
     p = _parse_filter_params(filter_elem)
-    rad = px_to_emu(p['std_dev'] * 2)
+    rad = px_to_emu(p['std_dev'])
     alpha_val = int(p['opacity'] * 100000)
 
     return f'''<a:effectLst>
@@ -295,6 +505,15 @@ def build_glow_xml(filter_elem: ET.Element) -> str:
 <a:srgbClr val="{p['color']}"><a:alpha val="{alpha_val}"/></a:srgbClr>
 </a:glow>
 </a:effectLst>'''
+
+
+def classify_filter_effect(filter_elem: ET.Element) -> str | None:
+    """Classify an SVG filter into a supported DrawingML effect kind."""
+    if filter_elem is None:
+        return None
+
+    p = _parse_filter_params(filter_elem)
+    return 'shadow' if p['has_offset'] else 'glow'
 
 
 def build_effect_xml(filter_elem: ET.Element) -> str:
@@ -307,10 +526,12 @@ def build_effect_xml(filter_elem: ET.Element) -> str:
     if filter_elem is None:
         return ''
 
-    p = _parse_filter_params(filter_elem)
-    if p['has_offset']:
+    effect_kind = classify_filter_effect(filter_elem)
+    if effect_kind == 'shadow':
         return build_shadow_xml(filter_elem)
-    return build_glow_xml(filter_elem)
+    if effect_kind == 'glow':
+        return build_glow_xml(filter_elem)
+    return ''
 
 
 def get_element_opacity(elem: ET.Element) -> float | None:

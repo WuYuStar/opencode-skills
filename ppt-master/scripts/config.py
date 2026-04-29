@@ -323,6 +323,14 @@ LAYOUT_MARGINS = {
         'content_width': 1160,
         'content_height': 600
     },
+    'ppt43': {
+        'top': 50,
+        'right': 50,
+        'bottom': 50,
+        'left': 50,
+        'content_width': 924,
+        'content_height': 608
+    },
     'xiaohongshu': {
         'top': 80,
         'right': 60,
@@ -338,7 +346,23 @@ LAYOUT_MARGINS = {
         'left': 60,
         'content_width': 960,
         'content_height': 960
-    }
+    },
+    'story': {
+        'top': 120,
+        'right': 60,
+        'bottom': 180,
+        'left': 60,
+        'content_width': 960,
+        'content_height': 1620
+    },
+    'wechat': {
+        'top': 40,
+        'right': 40,
+        'bottom': 40,
+        'left': 40,
+        'content_width': 820,
+        'content_height': 303
+    },
 }
 
 
@@ -350,13 +374,16 @@ SVG_CONSTRAINTS = {
     # Forbidden elements - PPT incompatible
     'forbidden_elements': [
         # Clipping / Masking
-        'clipPath',
+        # Note: `clipPath` on <image> elements is conditionally allowed — the
+        # converter maps qualifying clip shapes to DrawingML picture geometry.
+        # See references/shared-standards.md §1.2. It is NOT listed here
+        # because this flat list has no per-parent-element semantics; the
+        # actual validation is in svg_quality_checker._check_forbidden_elements.
         'mask',
         # Style system
         'style',
         # Structure / Nesting
         'foreignObject',
-        'marker',
         # Text / Fonts
         'textPath',
         # Animation / Interaction
@@ -370,12 +397,15 @@ SVG_CONSTRAINTS = {
         'iframe',
     ],
     # Forbidden attributes
+    # Note: marker-start / marker-end are NOT banned — they are conditionally
+    # allowed (see references/shared-standards.md §1.1). The svg_to_pptx
+    # converter maps qualifying <marker> defs to native DrawingML
+    # <a:headEnd>/<a:tailEnd>.
     'forbidden_attributes': [
         'class',
         'id',
         'onclick', 'onload', 'onmouseover', 'onmouseout',
         'onfocus', 'onblur', 'onchange',
-        'marker-end',
     ],
     # Forbidden patterns (regex matching)
     'forbidden_patterns': [

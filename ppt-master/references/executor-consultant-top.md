@@ -70,11 +70,13 @@ Every MBB-level presentation follows the SCQA narrative structure:
   └───────┘  └───────┘  └───────┘
 ```
 
-| Level | Position | Font Size |
+| Level | Position | Font Size (example @ body=14px dense baseline) |
 |-------|----------|-----------|
-| Core conclusion | Takeaway Box | 16-18px bold |
-| Arguments | Content area body | 14-16px |
-| Supporting data | Charts / cards | 12-14px |
+| Core conclusion | Takeaway Box | 16-18px bold (~1.2x body) |
+| Arguments | Content area body | 14-16px (~1x body) |
+| Supporting data | Charts / cards | 12-14px (~0.85x body) |
+
+> MBB decks typically run on a dense `body` baseline (14-18px) for information density. The px ranges above assume that; if a particular consulting deck declares a different body size in `spec_lock.md`, multiply by the ratios listed above rather than taking the px figures literally.
 
 **Contrast**: Title "Market Research Results" (wrong) → "Metaverse needs 5-10 years to reach scale" (right); Body "We researched... and found..." (wrong) → "Three arguments: (1)... (2)... (3)..." (right)
 
@@ -116,6 +118,8 @@ Horizontal table; own row highlighted in theme color, others in gray. Leading in
 ### Waterfall Chart (Change Attribution)
 
 Start → increase/decrease factors → End. Positive factors green bars, negative factors red bars, start/end points dark bars, cumulative line as dashed connector.
+
+> When `page_rhythm = breathing`, the MBB-appropriate form is **negative-space-driven**: a single takeaway statement on a near-empty canvas, or a dominant chart with one sentence of strategic implication (an asymmetric 2:8 degeneration of the standard chart+insight layout). The extreme-simplicity aesthetic of MBB is *served* by this — filler imagery and decorative overlap from marketing-style decks do NOT belong here. Universal rhythm discipline is in `executor-base.md §2.1`.
 
 ---
 

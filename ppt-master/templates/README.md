@@ -19,11 +19,11 @@ The `layouts/` directory contains pre-built page layout templates organized by d
 - **Academic Defense**: Academic defense style, research-oriented
 
 - **Human browsing**: [layouts/README.md](./layouts/README.md)
-- **AI / Programmatic lookup**: [layouts/layouts_index.json](./layouts/layouts_index.json)
+- **Slim lookup (opt-in)**: [layouts/layouts_index.json](./layouts/layouts_index.json) — only consulted when the user explicitly opts into the template flow
 
-## Chart Templates
+## Visualization Templates
 
-The `charts/` directory contains 33 standard chart templates:
+The `charts/` directory contains 57 standardized visualization templates. For backward compatibility, the directory name remains `charts/`, but its scope includes charts, infographics, process diagrams, relationship diagrams, strategic frameworks, and system architecture diagrams:
 
 - KPI Cards
 - Bar Chart / Stacked Bar Chart
@@ -36,13 +36,22 @@ The `charts/` directory contains 33 standard chart templates:
 - Gantt Chart
 - Process Flow
 - Org Chart
+- Layered Architecture / Module Composition / Hub with Described Spokes / Pipeline with Stages / Client-Server Flow
 
-- **Human browsing**: [charts/README.md](./charts/README.md)
-- **AI / Programmatic lookup**: [charts/charts_index.json](./charts/charts_index.json)
+- **Library index (single source of truth)**: [charts/charts_index.json](./charts/charts_index.json)
+- **Directory overview**: [charts/README.md](./charts/README.md)
 
 ## Icon Library
 
-The `icons/` directory contains 640+ vector icons sourced from [SVG Repo](https://www.svgrepo.com/).
+The `icons/` directory contains 11,600+ vector icons across five libraries:
 
-- **Human browsing**: [icons/README.md](./icons/README.md)
-- **AI / Programmatic lookup**: [icons/icons_index.json](./icons/icons_index.json)
+| Library | Style | Count |
+|---------|-------|-------|
+| `chunk-filled` | fill / straight-line geometry | 640 |
+| `tabler-filled` | fill / bezier-curve forms | 1000+ |
+| `tabler-outline` | stroke / line | 5000+ |
+| `phosphor-duotone` | duotone / single color + 0.2 opacity backplate | 1200+ |
+| `simple-icons` | brand logos (company / product marks) | 3400+ |
+
+- **Usage & style rules**: [icons/README.md](./icons/README.md)
+- **Search icons**: `ls skills/ppt-master/templates/icons/<library>/ | grep <keyword>`

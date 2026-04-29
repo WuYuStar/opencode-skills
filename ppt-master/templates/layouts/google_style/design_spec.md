@@ -73,9 +73,9 @@
 
 ### Font Stack
 
-**Font Stack**: `system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`
+**Font Stack**: `Arial, "Microsoft YaHei", sans-serif`
 
-> Uses system UI font stack to ensure cross-platform consistency and optimal rendering.
+> Uses PowerPoint-safe cross-platform fonts by default. Roboto may be used only when the target environment explicitly installs or embeds it.
 
 ### Font Size Hierarchy
 
@@ -230,14 +230,15 @@ Color order: Blue → Red → Yellow → Green
 
 The following SVG features are prohibited (not PPT-compatible):
 
-- `clipPath`, `mask`
+- `mask`; `clipPath` is allowed only on `<image>` under `shared-standards.md` §1.2
 - `<style>` tag, `class` attribute
 - `foreignObject`
 - `textPath`
 - `animate*` animation elements
 - `script`
-- `marker`, `marker-end`
 - `rgba()` color format (use HEX + opacity instead)
+
+> `marker-start` / `marker-end` are conditionally allowed — see `shared-standards.md` §1.1 (marker must be in `<defs>`, `orient="auto"`, shape = triangle / diamond / oval). The converter maps them to native DrawingML arrow heads.
 
 ### Shadow Implementation
 

@@ -14,15 +14,13 @@ python3 scripts/image_gen.py "Beautiful landscape" -n "low quality, blurry, wate
 python3 scripts/image_gen.py --list-backends
 ```
 
-Support tiers:
-- Core: `gemini`, `openai`, `qwen`, `zhipu`, `volcengine`
-- Extended: `stability`, `bfl`, `ideogram`
-- Experimental: `siliconflow`, `fal`, `replicate`
+Backends are grouped into Core / Extended / Experimental tiers. Run `python3 scripts/image_gen.py --list-backends` for the current list.
 
 Backend selection:
 
 ```bash
 python3 scripts/image_gen.py "A cat" --backend openai
+python3 scripts/image_gen.py "A cinematic portrait" --backend minimax
 python3 scripts/image_gen.py "A product launch hero image" --backend qwen
 python3 scripts/image_gen.py "科技感背景图" --backend zhipu
 python3 scripts/image_gen.py "A product KV in cinematic style" --backend volcengine
@@ -38,23 +36,23 @@ The active backend must always be selected explicitly via `IMAGE_BACKEND`.
 Example `.env`:
 
 ```env
-IMAGE_BACKEND=gemini
-GEMINI_API_KEY=your-api-key
-GEMINI_BASE_URL=https://your-proxy-url.com/v1beta
-GEMINI_MODEL=gemini-3.1-flash-image-preview
+IMAGE_BACKEND=openai
+OPENAI_API_KEY=sk-xxx
+OPENAI_MODEL=gpt-image-2
+# OPENAI_BASE_URL=http://127.0.0.1:3000/v1   # optional proxy
 ```
 
 Example process environment:
 
 ```bash
-export IMAGE_BACKEND=gemini
-export GEMINI_API_KEY=your-api-key
-export GEMINI_MODEL=gemini-3.1-flash-image-preview
+export IMAGE_BACKEND=openai
+export OPENAI_API_KEY=sk-xxx
+export OPENAI_MODEL=gpt-image-2
 ```
 
 Current process environment wins over `.env`.
 
-Use provider-specific keys only, such as `GEMINI_API_KEY`, `OPENAI_API_KEY`, `QWEN_API_KEY`, `ZHIPU_API_KEY`, `VOLCENGINE_API_KEY`, `FAL_KEY`, or `REPLICATE_API_TOKEN`.
+Use provider-specific keys only (e.g. `GEMINI_API_KEY`, `OPENAI_API_KEY`). See `.env.example` for the full list per backend.
 
 `IMAGE_API_KEY`, `IMAGE_MODEL`, and `IMAGE_BASE_URL` are intentionally unsupported.
 
@@ -64,6 +62,17 @@ Recommendation:
 - Default to the Core tier for routine PPT work
 - Use Extended only when you need a specific model style
 - Treat Experimental backends as opt-in
+
+Example `.env` for MiniMax image backend:
+
+```env
+IMAGE_BACKEND=minimax
+MINIMAX_API_KEY=your-api-key
+# Optional: override base URL (defaults to https://api.minimaxi.com, domestic China endpoint)
+# Use https://api.minimax.io for overseas access
+# MINIMAX_BASE_URL=https://api.minimax.io
+# MINIMAX_MODEL=image-01
+```
 
 ## `analyze_images.py`
 

@@ -3,7 +3,7 @@
 
 Usage:
     python3 scripts/project_manager.py init <project_name> [--format ppt169] [--dir projects]
-    python3 scripts/project_manager.py import-sources <project_path> <source1> [<source2> ...] [--move]
+    python3 scripts/project_manager.py import-sources <project_path> <source1> [<source2> ...] [--move | --copy]
     python3 scripts/project_manager.py validate <project_path>
     python3 scripts/project_manager.py info <project_path>
 """
@@ -43,7 +43,11 @@ SKILL_DIR = TOOLS_DIR.parent
 REPO_ROOT = SKILL_DIR.parent.parent
 SOURCE_DIRNAME = "sources"
 TEXT_SOURCE_SUFFIXES = {".md", ".markdown", ".txt"}
+TABLE_TEXT_SUFFIXES = {".csv", ".tsv"}
 PDF_SUFFIXES = {".pdf"}
+PRESENTATION_SUFFIXES = {".pptx", ".pptm", ".ppsx", ".ppsm", ".potx", ".potm"}
+EXCEL_SUFFIXES = {".xlsx", ".xlsm"}
+LEGACY_EXCEL_SUFFIXES = {".xls"}
 DOC_SUFFIXES = {
     ".docx", ".doc", ".odt", ".rtf",          # Office documents
     ".epub",                                    # eBooks
@@ -52,6 +56,15 @@ DOC_SUFFIXES = {
     ".ipynb", ".typ",                           # Notebooks / Typst
 }
 WECHAT_HOST_KEYWORDS = ("mp.weixin.qq.com", "weixin.qq.com")
+
+
+def _curl_cffi_available() -> bool:
+    """Return whether curl_cffi is importable (enables Python TLS impersonation)."""
+    try:
+        import curl_cffi  # noqa: F401
+        return True
+    except ImportError:
+        return False
 
 
 def is_url(value: str) -> bool:
@@ -127,6 +140,7 @@ class ProjectManager:
             "notes",
             "templates",
             SOURCE_DIRNAME,
+            "exports",
         ):
             (project_path / rel_path).mkdir(parents=True, exist_ok=True)
 
@@ -144,6 +158,7 @@ class ProjectManager:
                 "- `notes/`: speaker notes\n"
                 "- `templates/`: project templates\n"
                 "- `sources/`: source materials and normalized markdown\n"
+                "- `exports/`: generated PPTX files (timestamped history)\n"
             ),
             encoding="utf-8",
         )
@@ -222,7 +237,7 @@ class ProjectManager:
         self._run_tool(
             [
                 sys.executable,
-                str(TOOLS_DIR / "pdf_to_md.py"),
+                str(TOOLS_DIR / "source_to_md" / "pdf_to_md.py"),
                 str(pdf_path),
                 "-o",
                 str(markdown_path),
@@ -233,21 +248,50 @@ class ProjectManager:
         self._run_tool(
             [
                 sys.executable,
-                str(TOOLS_DIR / "doc_to_md.py"),
+                str(TOOLS_DIR / "source_to_md" / "doc_to_md.py"),
                 str(doc_path),
                 "-o",
                 str(markdown_path),
             ]
         )
 
+    def _import_presentation(self, presentation_path: Path, markdown_path: Path) -> None:
+        self._run_tool(
+            [
+                sys.executable,
+                str(TOOLS_DIR / "source_to_md" / "ppt_to_md.py"),
+                str(presentation_path),
+                "-o",
+                str(markdown_path),
+            ]
+        )
+
+    def _import_excel(self, excel_path: Path, markdown_path: Path) -> None:
+        self._run_tool(
+            [
+                sys.executable,
+                str(TOOLS_DIR / "source_to_md" / "excel_to_md.py"),
+                str(excel_path),
+                "-o",
+                str(markdown_path),
+            ]
+        )
+
     def _import_url(self, url: str, markdown_path: Path) -> None:
+        # Prefer web_to_md.py: it uses curl_cffi internally when available,
+        # which handles WeChat and other TLS-fingerprint-blocked sites.
+        # Fall back to the Node.js version only when the URL is known to
+        # require TLS impersonation AND curl_cffi isn't installed.
         host = urlparse(url).netloc.lower()
-        if any(keyword in host for keyword in WECHAT_HOST_KEYWORDS):
-            command = ["node", str(TOOLS_DIR / "web_to_md.cjs"), url, "-o", str(markdown_path)]
+        is_tls_sensitive = any(keyword in host for keyword in WECHAT_HOST_KEYWORDS)
+
+        if is_tls_sensitive and not _curl_cffi_available() and shutil.which("node"):
+            command = ["node", str(TOOLS_DIR / "source_to_md" / "web_to_md.cjs"),
+                       url, "-o", str(markdown_path)]
         else:
             command = [
                 sys.executable,
-                str(TOOLS_DIR / "web_to_md.py"),
+                str(TOOLS_DIR / "source_to_md" / "web_to_md.py"),
                 url,
                 "-o",
                 str(markdown_path),
@@ -354,7 +398,10 @@ class ProjectManager:
         project_path: str,
         source_items: list[str],
         move: bool = False,
+        copy: bool = False,
     ) -> dict[str, list[str]]:
+        if move and copy:
+            raise ValueError("--move and --copy are mutually exclusive")
         project_dir = Path(project_path)
         if not project_dir.exists() or not project_dir.is_dir():
             raise FileNotFoundError(f"Project directory not found: {project_dir}")
@@ -402,7 +449,19 @@ class ProjectManager:
                 summary["skipped"].append(f"{item}: directories are not supported")
                 continue
 
-            effective_move = move or is_within_path(source_path, REPO_ROOT)
+            if copy:
+                effective_move = False
+            elif move:
+                effective_move = True
+            elif is_within_path(source_path, REPO_ROOT):
+                effective_move = True
+                print(
+                    f"note: {source_path} is inside the ppt-master repo; moved "
+                    f"(not copied) to avoid accidental commit. Pass --copy to override.",
+                    file=sys.stderr,
+                )
+            else:
+                effective_move = False
             suffix = source_path.suffix.lower()
 
             if suffix in {".md", ".markdown"}:
@@ -453,6 +512,53 @@ class ProjectManager:
                     summary["markdown"].append(str(markdown_path))
                 except Exception as exc:  # pragma: no cover - summary path
                     summary["skipped"].append(f"{item}: PDF conversion failed ({exc})")
+            elif suffix in PRESENTATION_SUFFIXES:
+                canonical_markdown_path = sources_dir / f"{archived_path.stem}.md"
+                if archived_path.stem in explicit_markdown_stems:
+                    summary["notes"].append(
+                        f"{item}: skipped presentation auto-conversion because a same-stem Markdown source was provided"
+                    )
+                    continue
+                if canonical_markdown_path.exists():
+                    summary["markdown"].append(str(canonical_markdown_path))
+                    summary["notes"].append(
+                        f"{item}: skipped presentation auto-conversion because {canonical_markdown_path.name} already exists"
+                    )
+                    continue
+                markdown_path = canonical_markdown_path
+                try:
+                    self._import_presentation(archived_path, markdown_path)
+                    summary["markdown"].append(str(markdown_path))
+                except Exception as exc:  # pragma: no cover - summary path
+                    summary["skipped"].append(f"{item}: presentation conversion failed ({exc})")
+            elif suffix in EXCEL_SUFFIXES:
+                canonical_markdown_path = sources_dir / f"{archived_path.stem}.md"
+                if archived_path.stem in explicit_markdown_stems:
+                    summary["notes"].append(
+                        f"{item}: skipped Excel auto-conversion because a same-stem Markdown source was provided"
+                    )
+                    continue
+                if canonical_markdown_path.exists():
+                    summary["markdown"].append(str(canonical_markdown_path))
+                    summary["notes"].append(
+                        f"{item}: skipped Excel auto-conversion because {canonical_markdown_path.name} already exists"
+                    )
+                    continue
+                markdown_path = canonical_markdown_path
+                try:
+                    self._import_excel(archived_path, markdown_path)
+                    summary["markdown"].append(str(markdown_path))
+                except Exception as exc:  # pragma: no cover - summary path
+                    summary["skipped"].append(f"{item}: Excel conversion failed ({exc})")
+            elif suffix in LEGACY_EXCEL_SUFFIXES:
+                summary["notes"].append(
+                    f"{item}: archived only; legacy .xls is not converted automatically. "
+                    "Resave as .xlsx to generate Markdown."
+                )
+            elif suffix in TABLE_TEXT_SUFFIXES:
+                summary["notes"].append(
+                    f"{item}: archived as a plain-text table source; no Markdown conversion needed"
+                )
             elif suffix in DOC_SUFFIXES:
                 canonical_markdown_path = sources_dir / f"{archived_path.stem}.md"
                 if archived_path.stem in explicit_markdown_stems:
@@ -538,22 +644,28 @@ def parse_init_args(argv: list[str]) -> tuple[str, str, str]:
     return project_name, canvas_format, base_dir
 
 
-def parse_import_args(argv: list[str]) -> tuple[str, list[str], bool]:
+def parse_import_args(argv: list[str]) -> tuple[str, list[str], bool, bool]:
     """Parse arguments for the `import-sources` subcommand."""
     if len(argv) < 4:
         raise ValueError("Project path and at least one source are required")
 
     project_path = argv[2]
     move = False
+    copy = False
     sources: list[str] = []
 
     for arg in argv[3:]:
         if arg == "--move":
             move = True
+        elif arg == "--copy":
+            copy = True
         else:
             sources.append(arg)
 
-    return project_path, sources, move
+    if move and copy:
+        raise ValueError("--move and --copy are mutually exclusive")
+
+    return project_path, sources, move, copy
 
 
 def main() -> None:
@@ -577,8 +689,8 @@ def main() -> None:
             return
 
         if command == "import-sources":
-            project_path, sources, move = parse_import_args(sys.argv)
-            summary = manager.import_sources(project_path, sources, move=move)
+            project_path, sources, move, copy = parse_import_args(sys.argv)
+            summary = manager.import_sources(project_path, sources, move=move, copy=copy)
             print(f"[OK] Imported sources into: {project_path}")
             if summary["archived"]:
                 print("\nArchived originals / URL records:")
