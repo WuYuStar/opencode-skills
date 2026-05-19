@@ -245,9 +245,13 @@ Color: use the deck's primary brand color for emphasis. Reserve green/red for ac
 
 ### Element Grouping (Mandatory)
 
-Wrap logically related elements in `<g>`. Produces PowerPoint groups in PPTX, making slides easier to select/move/edit.
+Wrap logically related elements in top-level `<g id="...">` groups. Produces PowerPoint groups in PPTX, making slides easier to select/move/edit and providing stable anchors for optional per-element entrance animation.
 
 > ⚠️ Only `<g opacity="...">` is banned (§2). Plain `<g>` for grouping is required.
+
+**Animation-ready rule**: direct children of `<svg>` should be semantic groups, not raw drawing atoms. Aim for **3–8 top-level content `<g id>` groups per slide** (the 3–8 budget excludes page chrome — see below); each content group becomes one entrance step under the chosen `--animation-trigger` mode (one click in `on-click`, one cascade slot in `after-previous`, parallel in `with-previous`).
+
+**Chrome groups are excluded automatically.** The exporter treats top-level groups whose id contains chrome tokens as page chrome and skips them in the animation sequence — they appear together with the slide. Tokens (matched against id after splitting on `-` / `_`): `background`, `bg`, `decoration` / `decorations` / `decor`, `header`, `footer`, `chrome`, `watermark`, `pagenumber` / `pagenum` / `page-number`. So `<g id="bg-texture">`, `<g id="cover-footer">`, `<g id="p03-header">`, `<g id="bottom-decor">` all skip animation while keeping their `<g>` wrapper for editing/grouping. Use these naming conventions for chrome — do **not** strip the `<g>` wrapper.
 
 **What to group**:
 
@@ -260,6 +264,13 @@ Wrap logically related elements in `<g>`. Produces PowerPoint groups in PPTX, ma
 | Page header | Title + subtitle + accent decoration |
 | Page footer | Page number + branding |
 | Decorative cluster | Related decorative shapes (rings, orbs, dots) |
+
+**Do not**:
+
+- Put the whole slide into one giant `<g>`; that leaves only one animation step.
+- Leave many top-level `<rect>` / `<text>` / `<path>` elements ungrouped; fallback animation is capped at 8 primitives and dense flat pages may skip animation.
+- Split every icon, text line, or decorative mark into separate top-level groups; that creates too many click steps.
+- Use anonymous top-level groups. Every top-level semantic group needs a descriptive `id`.
 
 **Example**:
 
@@ -274,7 +285,7 @@ Wrap logically related elements in `<g>`. Produces PowerPoint groups in PPTX, ma
 </g>
 ```
 
-**Naming**: descriptive `id` on `<g>` (e.g., `card-1`, `step-discover`, `header`, `footer`). Optional but recommended.
+**Naming**: descriptive `id` on top-level `<g>` is **required** (e.g., `card-1`, `step-discover`, `header`, `footer`). Each top-level `<g id>` becomes one anchor for per-element entrance animation in PPTX export; without it, the exporter falls back to at most 8 top-level primitives or skips animation on dense pages.
 
 ---
 
@@ -290,14 +301,41 @@ python3 scripts/total_md_split.py <project_path>
 python3 scripts/finalize_svg.py <project_path>
 
 # 3. Export PPTX (from svg_final/, embeds speaker notes by default)
-python3 scripts/svg_to_pptx.py <project_path> -s final
-# Output: exports/<project_name>_<timestamp>.pptx + exports/<project_name>_<timestamp>_svg.pptx
+python3 scripts/svg_to_pptx.py <project_path>
+# Output:
+#   exports/<project_name>_<timestamp>.pptx           ← main native pptx
+#   backup/<timestamp>/<project_name>_svg.pptx        ← SVG snapshot
+#   backup/<timestamp>/svg_output/                    ← Executor SVG source backup
 ```
+
+**Optional animation flags** (only when the user asks):
+- `-t <effect>` — page transition (`fade` / `push` / `wipe` / `split` / `strips` / `cover` / `random` / `none`; default `fade`)
+- `-a <effect>` — per-element entrance animation (`fade` / `mixed` / `random` / one of 22 named effects / `none`; default `mixed`). Anchors on top-level `<g id="...">` groups.
+- `--animation-trigger {on-click,with-previous,after-previous}` — Start mode matching PowerPoint's animation-pane Start dropdown. Default `after-previous` (cascade on slide entry; pace via `--animation-stagger <seconds>`); `on-click` advances per click; `with-previous` plays all groups together.
+- `--animation-config <path>` — optional object-level animation sidecar. Default: `<project>/animations.json` when present.
+- `--auto-advance <seconds>` — kiosk-style auto-play
+
+**Optional recorded narration** (only when the user asks for narrated/video export):
+
+```bash
+python3 scripts/notes_to_audio.py <project_path> --voice zh-CN-XiaoxiaoNeural
+python3 scripts/svg_to_pptx.py <project_path> --recorded-narration audio
+```
+
+- `notes_to_audio.py` reads split `notes/*.md` files and writes one audio file per slide to `audio/`. Default `edge` output is MP3; configured cloud providers may output MP3 or WAV depending on provider settings.
+- `--recorded-narration audio` prepares PowerPoint's recorded timings and narrations: every slide needs matching `m4a` / `mp3` / `wav` audio, every duration must be readable by `ffprobe`, and `on-click` object animation is rejected.
+- `--recorded-narration audio` embeds matching audio, keeps speaker notes, and sets slide timings from audio duration.
+- `--narration-audio-dir audio` is the lower-level embedding path for partial audio coverage; it does not prepare a complete recorded-timings export.
+- Long-audio import and automatic long-audio splitting are not supported.
+
+Full reference: [`animations.md`](animations.md).
 
 **Prohibited**:
 - NEVER use `cp` as a substitute for `finalize_svg.py`
-- NEVER export directly from `svg_output/` — MUST export from `svg_final/` (use `-s final`)
-- NEVER add extra flags like `--only`
+- NEVER force `-s output` for the legacy/preview pptx (PowerPoint's internal SVG parser drops icons and rounded corners). Default auto-split already gives native the high-fidelity source it needs without affecting legacy.
+- NEVER use `--only` (it suppresses one of the two output files)
+
+> Source-directory split: by default `svg_to_pptx.py` reads `svg_output/` for the native pptx (preserves icon `<use>`, image `preserveAspectRatio` → `srcRect`, rounded rect `rx/ry` → `prstGeom roundRect`) and `svg_final/` for the legacy/preview pptx (PowerPoint's internal SVG parser needs the flattened form). Pass `-s output` or `-s final` only when you specifically want both products to read from a single source.
 
 **Re-run rule**: Any change to `svg_output/` after post-processing requires re-running Steps 2-3. Step 1 only re-runs if `notes/total.md` changed.
 

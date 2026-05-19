@@ -6,7 +6,56 @@
 
 ## 1. Template Adherence Rules
 
-If `templates/` exists in the project, follow the template structure:
+### 1.0 Pre-generation Batch Read
+
+**Hard rule**: Before the first SVG page, batch-read every template SVG this deck will reference. Read once up front, never re-read during generation.
+
+| Source list | Read path |
+|---|---|
+| Chosen template's `design_spec.md` (read frontmatter to detect `replication_mode`) | `templates/<chosen_template>/design_spec.md` |
+| Every distinct `<basename>` in `spec_lock.md page_layouts` | `templates/<chosen_template>/<basename>.svg` |
+| Every distinct chart name in `spec_lock.md page_charts` | `templates/charts/<chart_name>.svg` |
+| Chart types in `design_spec.md §VII` not covered above | `templates/charts/<chart_name>.svg` |
+
+**Forbidden — re-reading during generation**:
+- Layout SVG already loaded in this batch
+- Chart SVG already loaded in this batch
+
+`spec_lock.md` is the only file re-read per page (§2.1).
+
+**Exception**: user mid-deck adds pages or swaps templates introducing a basename/chart absent from the original batch → read the new file once, continue.
+
+> Note: batched prefix reads stay in the cached prompt prefix; per-page `spec_lock.md` re-reads append below and benefit from that cache. Scattered on-demand reads of layout/chart SVGs would invalidate downstream cache and sit in the compression-vulnerable mid-context region.
+
+Resolve the per-page template SVG via `spec_lock.md page_layouts` (authoritative). The legacy page-type table below is a **last-resort fallback** for legacy decks where `page_layouts` is missing.
+
+**Resolution order (per page):**
+
+1. **Mirror-mode template** (template's `design_spec.md` frontmatter has `replication_mode: mirror`) → see §1.1 below. The page is consumed as a **visual reference**, not as a placeholder shell.
+2. `spec_lock.md page_layouts` has `P<NN>: <basename>` for this page → inherit the structure of `templates/<chosen_template>/<basename>.svg` (already in context from §1.0).
+3. `page_layouts` exists but **no entry** for this page → **free design**, no template inheritance.
+4. `page_layouts` section absent (legacy deck) **and** `templates/` directory exists → fall back to the page-type table below, matching by SVG filename keyword (cover/chapter/content/ending/toc). Read the matched file at first use if §1.0 batch did not cover it.
+5. No template at all → free design.
+
+> Note: `page_layouts` disambiguates the multiple content variants modern templates ship (e.g., `graduation_defense` has 8); the legacy table cannot.
+
+### 1.1 Mirror-mode templates — reference-style consumption
+
+When the project's chosen template is a `mirror` template (`design_spec.md` frontmatter declares `replication_mode: mirror`), Executor switches to a **reference-style** consumption path that bypasses placeholder substitution:
+
+1. **Per-page reference selection** — Strategist selects one mirror page per project page via `spec_lock.md page_layouts` (e.g., `P04: 015_content`). The basename is the mirror filename without extension; Strategist made this choice by reading `design_spec.md §V Page Roster` descriptions, not by guessing.
+2. **Copy, don't fill** — open the referenced mirror SVG (already in context from §1.0). **Copy it as the starting point for the project page**, then edit text elements in place to express the project's content for `P<NN>`. Preserve every non-text element verbatim: backgrounds, decorative shapes, sprite-cropped images, charts, icon usage, color values, font families, geometry, sprite `<svg viewBox>` wrappers, `<image>` references.
+3. **What you may edit** — the visible text content of `<text>` / `<tspan>` elements that express slide-specific content (title, body, captions, KPI labels, dates, page numbers). Replace the source deck's example text with the project's text for this page from `design_spec.md §IX` and `notes/<NN>_*.md`.
+4. **What you must not touch** — element positions, sizes, fonts, colors, fills, strokes, gradients, image hrefs, `<g>` grouping, sprite-sheet `<svg viewBox>` wrappers, decorative `<rect>` / `<path>` / `<circle>` / `<polygon>` shapes, `<use data-icon="...">` markers, embedded chart data structures. Mirror's value is preserving the source deck's visual identity — any geometric / decorative drift defeats the purpose.
+5. **Content fit** — the mirror page was chosen by Strategist because its layout matches the content slot. If the project's content for `P<NN>` legitimately needs more / fewer items than the mirror page provides (e.g. mirror shows 3 KPI cards, project has 4 metrics), keep the mirror page's visual rhythm and either drop one metric to fit or split across two pages — do **not** restructure the mirror page's grid. If neither works, surface a `warning: P<NN> content does not fit mirror reference <basename>; suggest different reference page` and proceed with the closest-fit edit.
+6. **No `{{}}` substitution** — mirror SVGs do not contain placeholder markers. Do not search for `{{TITLE}}` / `{{CONTENT_AREA}}` etc.; do not invent placeholders. The whole mirror contract is "verbatim source + in-place text edit".
+7. **Output filename** — follow the standard project SVG naming convention (`<NN>_<page_name>.svg` where `<NN>` matches the project page index, not the mirror source index). The mirror filename is the *reference*, not the *output*.
+
+**Detecting mirror mode**: read the chosen template's `design_spec.md` frontmatter once during §1.0 batch read. If `replication_mode: mirror`, every page that hits `page_layouts` follows §1.1 above; pages without a `page_layouts` entry still fall through to free design (resolution rule 3 above).
+
+**Mirror + chart pages**: chart structures inside a mirror SVG are already drawn (axis, series, labels). Treat them as visual references — replace the data labels and series text content to match the project's chart spec, but do not redraw the chart from a `templates/charts/<name>.svg` baseline. A mirror template's `page_charts` entries are normally absent for this reason.
+
+**Legacy fallback table** (used only when `page_layouts` is absent):
 
 | Page Type | Corresponding Template | Adherence Rules |
 |-----------|----------------------|-----------------|
@@ -21,7 +70,7 @@ If `templates/` exists in the project, follow the template structure:
 Before generating each page, output which template is used:
 
 ```
-📝 **Template mapping**: `templates/01_cover.svg` (or "None (free design)")
+📝 **Template mapping**: `templates/<chosen_template>/03a_content_image_text.svg` (or "None (free design)")
 🎯 **Adherence rules / layout strategy**: [specific description]
 ```
 
@@ -67,6 +116,24 @@ Before drawing each page, look up its entry in `page_rhythm` (key format `P<NN>`
 **Missing `page_rhythm` section** → emit `warning: spec_lock.md missing page_rhythm — defaulting all pages to dense` once, fall back to `dense` for all pages.
 
 **Tag not found for current page** → fall back to `dense` silently. Do not invent a tag.
+
+**Per-page template lookup — `page_layouts` section**:
+
+Before drawing each page, look up its entry in `page_layouts` to decide which basename to inherit (the SVG itself was loaded in §1.0):
+
+- Entry present (e.g., `P04: 03a_content_image_text`) → inherit the corresponding SVG already in context. The basename **must match** an actual file in the chosen template directory; if it doesn't, emit `warning: page_layouts P<NN> references missing file <basename>.svg — falling back to free design` and proceed.
+- No entry for this page → free design, no inheritance. **Not an error** — Strategist intentionally left this page free.
+- Whole section absent → see §1 fallback (legacy page-type matching).
+
+Do **not** invent a layout entry, and do **not** assume a template just because `templates/` exists — if `page_layouts` is present but silent for this page, that silence is the instruction.
+
+**Per-page chart reference — `page_charts` section**:
+
+Before drawing each page, look up its entry in `page_charts` to decide which chart structure applies (the SVG itself was loaded in §1.0):
+
+- Entry present (e.g., `P09: timeline_horizontal`) → adapt the corresponding chart SVG already in context. Apply project colors/typography/density; do not copy verbatim. Cross-reference `templates/charts/charts_index.json` for the chart's purpose summary if needed.
+- No entry for this page → either no chart on this page, or a chart that didn't match any catalog template (Strategist's `no-template-match` fallback). Design the visualization from scratch using `design_spec.md §VII` for guidance.
+- Whole section absent → no chart pages in this deck.
 
 ---
 
@@ -121,6 +188,8 @@ grep "chart-plot-area" <project_path>/svg_output/<current_page>.svg
 
 > All chart templates in `templates/charts/` include this marker as a reference. If you are drawing a chart and the marker is absent, you have a bug.
 - **Technical specs**: see [shared-standards.md](shared-standards.md) for SVG/PPT constraints
+- **Card containers — use the documented patterns**: when a content page needs section cards (4 quadrants, parallel aspects, capability blocks, info cards), use the patterns codified in [`templates/charts/CHART_STYLE_GUIDE.md`](../templates/charts/CHART_STYLE_GUIDE.md) §11 — half-rounded section tab (§11.1), nested card border without stroke (§11.2), card-grid skeletons (§11.3), diagonal dashed connector for cross-quadrant relationships (§11.5), ground-anchor ellipse as a non-filter depth marker (§11.6), bidirectional interaction arrows for paired protocols (§11.7). Do not reinvent the "tinted full-rounded rect + white cover-rect to hide the bottom corners" hack; it survives in older templates but breaks SVG→PPTX color editing. Reference templates: [`labeled_card.svg`](../templates/charts/labeled_card.svg), [`quadrant_text_bullets.svg`](../templates/charts/quadrant_text_bullets.svg), [`kpi_cards.svg`](../templates/charts/kpi_cards.svg), [`matrix_2x2.svg`](../templates/charts/matrix_2x2.svg), [`team_roster.svg`](../templates/charts/team_roster.svg), [`client_server_flow.svg`](../templates/charts/client_server_flow.svg).
+- **Semantic shapes over preset stacks**: when a slide needs to express "ascending / converging / breaking through / stacking" — i.e., a relationship that goes beyond a generic arrow — prefer a single custom `<polygon>` or `<path>` that encodes the semantics geometrically, rather than stacking multiple preset arrows. A converging-tip path or a podium polygon reads faster than three arrows pointing at a label. Examples of this technique appear in many imported corporate decks; see `projects/01_template_import/svg_output/slide_01.svg` shape-158 for a reference (gradient-filled inward-pointing arrow). Do not codify these as templates — they are page-specific; the rule is just "consider polygon before stacking presets."
 - **Visual depth — through restraint**: layered depth comes from rhythm (flat vs lifted, dense vs spacious), not from shadows everywhere. Apply shadow to at most 2-3 genuinely floating elements per page (cards on photos, primary CTA, overlays); keep peer-grid cards, dividers, body containers flat. Reach for typography weight, spacing, accent bars, subtle tints **before** shadow. Full rules in shared-standards.md §6.
 
 ### SVG File Naming Convention
@@ -206,11 +275,9 @@ ls skills/ppt-master/templates/icons/simple-icons/ | grep github
 
 ## 5. Visualization Reference
 
-When the Design Spec includes **VII. Visualization Reference List**, read the referenced templates from `templates/charts/` before drawing those pages.
+Chart SVGs referenced in **VII. Visualization Reference List** are loaded once via the §1.0 batch read. This section governs adaptation only.
 
-**Reading is mandatory; copying is not.** On first use of each visualization type listed in §VII, read `templates/charts/<chart_name>.svg`. Use as reference for layout, structure, spacing, visual logic — apply the project's colors, typography, content. Do not improvise from memory; do not replicate verbatim.
-
-> Re-read only when the visualization type changes; reuse for subsequent pages of the same type.
+**Hard rule**: adapt the loaded chart SVG; do not improvise from memory and do not replicate verbatim. Apply project colors, typography, content; preserve visualization type.
 
 **Adaptation rules**:
 - **Preserve**: visualization type (bar/line/pie/timeline/process/framework…) as specified
@@ -238,12 +305,32 @@ Handle images by their status in the Design Spec's Image Resource List. Status e
 |--------|--------|----------|
 | **Existing** | User-provided | Reference images directly from `../images/` directory |
 | **Generated** | Generated by Image_Generator | Reference images directly from `../images/` directory |
-| **Needs-Manual** | Generation failed and file is absent | Use dashed border placeholder unless the expected file exists |
+| **Sourced** | Web-acquired by Image_Searcher | Reference from `../images/`. **Read [`image_sources.json`](image-searcher.md) to decide attribution** — see §6.1 below. |
+| **Needs-Manual** | Acquisition failed and file is absent | Use dashed border placeholder unless the expected file exists |
 | **Placeholder** | Not yet prepared | Use dashed border placeholder |
 
 **Reference syntax**: see [`svg-image-embedding.md`](svg-image-embedding.md).
 
 **Placeholder**: Dashed border `<rect stroke-dasharray="8,4" .../>` + description text
+
+**`no-crop` images**: when a `spec_lock.md images` entry ends with ` | no-crop`, size the container to the image's native ratio (from `analyze_images.py` or file dims) and use `preserveAspectRatio="xMidYMid meet"`. Untagged entries are croppable — default to `slice`.
+
+### 6.1 Inline Attribution for Sourced Images (web path)
+
+Whenever the slide uses an image with `Status: Sourced`, look up the corresponding entry in `project/images/image_sources.json` and act on `license_tier`:
+
+| `license_tier` | Action on this slide |
+|---|---|
+| `no-attribution` | Embed the `<image>` element only. **No credit element needed.** |
+| `attribution-required` | Embed the `<image>` element **plus** a small inline `<text>` credit element per the visual spec in [image-searcher.md §7](./image-searcher.md). |
+
+The credit text is **not** rendered by post-processing or export — it must be present in the SVG you produce. The shape of the credit element (size, position, color, multi-image source line, hero gradient overlay) is specified in [image-searcher.md §7](./image-searcher.md). Do not invent a different style.
+
+Use `attribution_text` from the manifest entry as the **starting point**, then compress for the small-text constraint (drop URL, drop filename, keep "via Provider / License"). For CC0/PD images that landed in the `attribution-required` tier only because of upstream metadata quirks (rare), credits are still safe to render.
+
+`svg_quality_checker.py` treats missing CC BY / CC BY-SA inline attribution as an **error**. Fix the offending SVG before post-processing.
+
+**The manifest is the single source of truth for credits.** Do not duplicate license info into speaker notes or any other artifact.
 
 ---
 
@@ -263,34 +350,36 @@ If `spec_lock.md` is absent, consult [`strategist.md`](strategist.md) §g — do
 
 After all SVG pages are finalized, enter Logic Construction Phase and write the full notes to `notes/total.md`. Batch-writing (not per-page) lets transitions plan coherently.
 
-**Format**: Each page: `# <number>_<page_title>` heading, separated by `---`. Each contains 2-5 sentence script, `Key points: ① ② ③`, `Duration: X minutes`. Every page after the first starts with a `[Transition]` phrase.
+**Pure spoken narration**: notes are read aloud verbatim by `notes_to_audio.py` (TTS). Write only what should be spoken. No visible markers, no labeled meta-lines, no enumerated key-point lists, no duration annotations — anything you write outside the heading will be vocalized.
 
-**Basic stage direction markers** (common to all styles):
+**Per-page structure**: `# <number>_<page_title>` heading (the `#` heading line is the only thing stripped before TTS), pages separated by `---`. Body is 2–5 natural sentences carrying the page's core message. Page-to-page transitions live inside the opening sentence as natural prose ("接下来……" / "Having framed X, let's turn to Y") — no bracketed `[过渡]` / `[Transition]` tags.
 
-| Marker | Purpose |
-|--------|---------|
-| `[Pause]` | Whitespace after key content, letting the audience absorb |
-| `[Transition]` | Standalone paragraph at the start of each page's text, bridging from the previous page |
+**Concrete examples** — same shape applies to any language; just write naturally in that language.
 
-> Each style may extend with additional markers (`[Interactive]`/`[Data]`/`[Scan Room]`/`[Benchmark]` etc.), see `executor-{style}.md`.
+中文 deck：
 
-**Language consistency**: structural labels and stage direction markers MUST match the deck's content language. Localize all labels — do NOT mix English labels with non-English content.
+```
+# 02_市场格局
 
-| English | 中文 | 日本語 | 한국어 |
-|---------|------|--------|--------|
-| `[Transition]` | `[过渡]` | `[つなぎ]` | `[전환]` |
-| `[Pause]` | `[停顿]` | `[間]` | `[멈춤]` |
-| `[Interactive]` | `[互动]` | `[問いかけ]` | `[상호작용]` |
-| `[Data]` | `[数据]` | `[データ]` | `[데이터]` |
-| `[Scan Room]` | `[观察]` | `[観察]` | `[관찰]` |
-| `[Benchmark]` | `[对标]` | `[ベンチマーク]` | `[벤치마크]` |
-| `Key points:` | `要点：` | `要点：` | `핵심 포인트:` |
-| `Duration:` | `时长：` | `所要時間：` | `소요 시간:` |
-| `Flex:` | `弹性：` | `調整：` | `조정:` |
+在明确了行业背景之后，我们来看具体的市场格局。当前线上零售集中度持续上升，前三大平台合计份额已经达到百分之六十八，腰部玩家正在被快速挤压，留给新进入者的窗口期不超过十八个月。这意味着我们的策略必须聚焦，而不是铺开。
+```
 
-> For languages not listed above, translate each label to the corresponding natural term in that language.
+英文 deck：
 
-**Requirements**: conversational tone; highlight each page's core info and key points; users may edit/override in `notes/`.
+```
+# 02_market_landscape
+
+Having framed the industry backdrop, let's look at the actual market landscape. Online retail concentration keeps rising — the top three platforms now hold sixty-eight percent of combined share, mid-tier players are being squeezed fast, and the window for new entrants is under eighteen months. This means our strategy has to focus, not spread.
+```
+
+> 日本語 / 한국어 / 其他语言：照搬同样的结构，用对应语言自然书写即可。
+
+**Number readability**: TTS reads digits and symbols literally. Prefer fully-spelled forms in the language being spoken when literal pronunciation would be awkward (e.g. Chinese "百分之六十八" reads better than "68%"; "1-2分钟" reads as "一减二分钟"). Plain integers and percentages in English are fine as-is.
+
+**Common mistakes to avoid**:
+- Leaving any bracketed stage marker (`[过渡]` / `[Transition]` / `[Pause]` / `[Data]` / `[Scan Room]` / `[Interactive]` / `[Benchmark]` etc.) in the text — they will be read aloud literally.
+- Adding `要点：① …` / `Key points: (1) …` / `时长：2分钟` / `Duration: 2 minutes` / `Flex: …` lines — TTS will speak "要点 一 …".
+- Mixing languages within one deck's notes.
 
 ### Task 2. Split Into Per-Page Note Files
 
@@ -314,6 +403,9 @@ python3 scripts/total_md_split.py <project_path>
 python3 scripts/finalize_svg.py <project_path>
 
 # 3. Export PPTX
-python3 scripts/svg_to_pptx.py <project_path> -s final
-# Output: exports/<project_name>_<timestamp>.pptx + exports/<project_name>_<timestamp>_svg.pptx
+python3 scripts/svg_to_pptx.py <project_path>
+# Output:
+#   exports/<project_name>_<timestamp>.pptx           ← main native pptx
+#   backup/<timestamp>/<project_name>_svg.pptx        ← SVG snapshot
+#   backup/<timestamp>/svg_output/                    ← Executor SVG source backup
 ```

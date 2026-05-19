@@ -201,8 +201,8 @@ def main():
                        default=False, help="是否启用 OCR (默认: false)")
     parser.add_argument("--enable_formula", type=lambda x: x.lower() == "true",
                        default=True, help="是否开启公式识别 (默认: true)")
-    parser.add_argument("--output_dir", default="./",
-                       help="输出目录 (默认: 当前目录)")
+    parser.add_argument("--output_dir", default=None,
+                       help="输出目录 (默认: PDF文件所在目录)")
     parser.add_argument("--output_name", help="输出文件名（不含扩展名）")
     parser.add_argument("--timeout", type=int, default=300,
                        help="轮询超时时间 (默认: 300秒)")
@@ -221,6 +221,9 @@ def main():
             print("建议使用精准 API: python parse_by_file.py ...", file=sys.stderr)
         
         file_name = os.path.basename(args.file_path)
+        pdf_dir = os.path.dirname(os.path.abspath(args.file_path))
+        output_dir = args.output_dir if args.output_dir else pdf_dir
+        
         print(f"使用 Agent 轻量 API 解析: {args.file_path}")
         print(f"文件大小: {file_size / 1024:.1f} KB")
         print("注意：此模式适用于小文件（≤10MB，≤20页），无需 Token\n")
@@ -255,8 +258,8 @@ def main():
             base_name = sanitize_filename(os.path.splitext(file_name)[0])
         
         # 创建输出目录
-        os.makedirs(args.output_dir, exist_ok=True)
-        output_path = os.path.join(args.output_dir, f"{base_name}.md")
+        os.makedirs(output_dir, exist_ok=True)
+        output_path = os.path.join(output_dir, f"{base_name}.md")
         
         # 下载 Markdown
         download_markdown(markdown_url, output_path)

@@ -201,8 +201,8 @@ def main():
     parser.add_argument("--page_ranges", help="指定页码范围")
     parser.add_argument("--extra_formats", nargs="+",
                        help="额外导出格式")
-    parser.add_argument("--output_dir", default="./",
-                       help="输出目录 (默认: 当前目录)")
+    parser.add_argument("--output_dir", default=None,
+                       help="输出目录 (默认: PDF文件所在目录)")
     parser.add_argument("--timeout", type=int, default=600,
                        help="轮询超时时间 (默认: 600秒)")
     parser.add_argument("--data_id", help="数据 ID")
@@ -215,9 +215,13 @@ def main():
             print(f"错误: 文件不存在: {args.file_path}", file=sys.stderr)
             return 1
         
-        # 获取文件名
+        # 获取文件名和PDF所在目录
         file_name = os.path.basename(args.file_path)
         base_name = os.path.splitext(file_name)[0]
+        pdf_dir = os.path.dirname(os.path.abspath(args.file_path))
+        
+        # 如果没有指定输出目录，使用PDF所在目录
+        output_dir = args.output_dir if args.output_dir else pdf_dir
         
         # 获取 Token
         token = get_token()
@@ -267,7 +271,7 @@ def main():
         }
         
         # 处理结果
-        md_path = process_result(task_data, args.output_dir, sanitize_filename(base_name))
+        md_path = process_result(task_data, output_dir, sanitize_filename(base_name))
         
         print(f"\n成功！Markdown 文件已保存至: {md_path}")
         return 0

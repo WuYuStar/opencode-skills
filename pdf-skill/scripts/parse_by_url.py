@@ -58,7 +58,7 @@ def main():
     parser.add_argument("--extra_formats", nargs="+",
                        help="额外导出格式，如 docx html latex")
     parser.add_argument("--output_dir", default="./",
-                       help="输出目录 (默认: 当前目录)")
+                       help="输出目录 (默认: 脚本执行时的当前目录)")
     parser.add_argument("--timeout", type=int, default=600,
                        help="轮询超时时间，单位秒 (默认: 600)")
     parser.add_argument("--data_id", help="数据 ID，用于业务标识")

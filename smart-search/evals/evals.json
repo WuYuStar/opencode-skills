@@ -1,0 +1,41 @@
+{
+  "skill_name": "smart-search",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "我想比较一下 LangChain 和 CrewAI 这两个 AI Agent 框架，它们在 2026 年的生产环境部署中各自有什么优劣势？我团队想选一个来构建我们的客服自动化系统。",
+      "expected_output": "搜索应该返回两框架的对比分析、生产部署案例，包含 GitHub stars、性能benchmark等信息",
+      "expectations": [
+        "The output includes LangChain and CrewAI comparison with specific data points (e.g., GitHub stars, performance benchmarks)",
+        "The output mentions production deployment considerations",
+        "The output provides a recommendation for customer service automation use case",
+        "The output cites specific sources or URLs from search results"
+      ],
+      "files": []
+    },
+    {
+      "id": 1,
+      "prompt": "帮我找一下新疆大学的校徽图片，我需要高清原图版本做报告用",
+      "expected_output": "返回新疆大学校徽的图片搜索结果，包含原图直连和缩略图",
+      "expectations": [
+        "The output includes image URLs for Xinjiang University logo",
+        "The output specifies image dimensions and resolution",
+        "The output identifies the most authoritative source for the logo image",
+        "The output uses image search (Brave Images or DDGS images)"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "2026年5月有什么重要的 AI 行业新闻？给我汇总一下最近一周的大事。",
+      "expected_output": "返回2026年5月最近的AI新闻，包含新闻来源和时间信息",
+      "expectations": [
+        "The output includes specific news items from May 2026",
+        "The output mentions dates or timeframes for the news",
+        "The output cites specific sources or publications",
+        "The output covers multiple AI-related topics (not just one)"
+      ],
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "skill_name": "aw-diary",
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "daily-diary-generation",
+      "prompt": "帮我生成今天的 ActivityWatch 轨迹日记，分析我今天在电脑上做了什么，写入 Obsidian",
+      "expected_output": "A complete diary entry in Obsidian Daily Notes with activity timeline and productivity analysis",
+      "files": [],
+      "assertions": [
+        {
+          "name": "connects_to_activitywatch",
+          "description": "Skill should connect to ActivityWatch server and fetch data"
+        },
+        {
+          "name": "processes_events",
+          "description": "Should process and merge raw events into meaningful timeline"
+        },
+        {
+          "name": "generates_timeline",
+          "description": "Should generate human-readable activity timeline"
+        },
+        {
+          "name": "writes_to_obsidian",
+          "description": "Should write diary entry to Obsidian vault in correct format"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "eval_name": "historical-date-query",
+      "prompt": "查看我 2024-01-15 的 ActivityWatch 数据，生成那天的轨迹日记",
+      "expected_output": "Diary entry for specified historical date with activity analysis",
+      "files": [],
+      "assertions": [
+        {
+          "name": "handles_specific_date",
+          "description": "Should correctly parse and use specified date parameter"
+        },
+        {
+          "name": "fetches_historical_data",
+          "description": "Should fetch ActivityWatch data for historical date"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "eval_name": "productivity-analysis",
+      "prompt": "分析我昨天的电脑使用效率，找出专注时段和打断源",
+      "expected_output": "Productivity analysis with focus periods, interruption sources, and suggestions",
+      "files": [],
+      "assertions": [
+        {
+          "name": "identifies_focus_periods",
+          "description": "Should identify continuous work periods >30 minutes"
+        },
+        {
+          "name": "analyzes_interruptions",
+          "description": "Should analyze application switching patterns and interruption sources"
+        },
+        {
+          "name": "provides_suggestions",
+          "description": "Should provide actionable improvement suggestions"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "eval_name": "preview-mode",
+      "prompt": "预览一下今天的 ActivityWatch 轨迹日记，先不要保存到 Obsidian",
+      "expected_output": "Preview of diary content without writing to Obsidian vault",
+      "files": [],
+      "assertions": [
+        {
+          "name": "supports_preview",
+          "description": "Should support preview mode that doesn't write to file"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "eval_name": "weekly-summary",
+      "prompt": "总结我这周的 ActivityWatch 数据，生成一周轨迹摘要",
+      "expected_output": "Weekly summary diary aggregating multiple days of ActivityWatch data",
+      "files": [],
+      "assertions": [
+        {
+          "name": "handles_date_range",
+          "description": "Should handle date ranges for weekly summaries"
+        }
+      ]
+    }
+  ]
+}

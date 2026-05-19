@@ -1,0 +1,24 @@
+# ActivityWatch Diary Configuration
+
+activitywatch:
+  host: "172.18.208.1"
+  port: 5600
+
+obsidian:
+  vault_path: "/home/wuyu/obsidian-vault"
+  daily_notes_dir: "Daily Notes"
+  filename_template: "轨迹日记-{date}.md"
+
+processing:
+  merge_gap: 60           # Seconds: merge events within this gap
+  min_duration: 30        # Seconds: filter out shorter events
+  timezone: "Asia/Shanghai"
+
+analysis:
+  depth: "medium"         # light/medium/deep
+  language: "zh"          # zh/en
+  include_raw_data: false # Include raw event data at bottom
+
+output:
+  verbose: false
+  preview: false

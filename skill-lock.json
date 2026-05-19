@@ -1,15 +1,6 @@
 {
   "version": 3,
   "skills": {
-    "jina-cli": {
-      "source": "geekjourneyx/jina-cli",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/geekjourneyx/jina-cli.git",
-      "skillPath": "skills/jina-cli/SKILL.md",
-      "skillFolderHash": "80905a021c454fcbad16d92cdcac1a7401270fea",
-      "installedAt": "2026-03-28T14:29:03.176Z",
-      "updatedAt": "2026-04-29T02:43:41.013Z"
-    },
     "find-skills": {
       "source": "vercel-labs/skills",
       "sourceType": "github",
@@ -24,18 +15,18 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/aidenwu0209/paddleocr-skills.git",
       "skillPath": "skills/paddleocr-text-recognition/SKILL.md",
-      "skillFolderHash": "cd470ad2842c9e68fbd33a5937fc918ece19f7c1",
+      "skillFolderHash": "1ec7483aa40d6bd2566d27624d96faf48393b547",
       "installedAt": "2026-03-28T14:48:02.145Z",
-      "updatedAt": "2026-04-29T02:44:37.073Z"
+      "updatedAt": "2026-05-18T08:40:10.531Z"
     },
     "agent-browser": {
       "source": "vercel-labs/agent-browser",
       "sourceType": "github",
       "sourceUrl": "https://github.com/vercel-labs/agent-browser.git",
       "skillPath": "skills/agent-browser/SKILL.md",
-      "skillFolderHash": "121eecacd86c0aab06aef5cd4663e80c5397cd41",
+      "skillFolderHash": "c1470a475a0472fceda2401ea6763708a91680a8",
       "installedAt": "2026-03-28T14:49:34.081Z",
-      "updatedAt": "2026-04-29T02:40:39.281Z"
+      "updatedAt": "2026-05-18T08:40:16.727Z"
     },
     "docx": {
       "source": "anthropics/skills",
@@ -57,15 +48,6 @@
       "installedAt": "2026-03-28T14:49:37.136Z",
       "updatedAt": "2026-04-29T02:42:54.077Z"
     },
-    "tavily-best-practices": {
-      "source": "tavily-ai/skills",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/tavily-ai/skills.git",
-      "skillPath": "skills/tavily-best-practices/SKILL.md",
-      "skillFolderHash": "4e4e39f5ed17ded09f72c7a9e5a1736bd7d4a08f",
-      "installedAt": "2026-03-28T14:50:27.474Z",
-      "updatedAt": "2026-04-29T02:45:13.785Z"
-    },
     "skill-creator": {
       "source": "anthropics/skills",
       "sourceType": "github",
@@ -85,15 +67,6 @@
       "pluginName": "document-skills",
       "installedAt": "2026-03-28T14:50:28.041Z",
       "updatedAt": "2026-04-29T02:42:34.446Z"
-    },
-    "humanizer-zh": {
-      "source": "op7418/humanizer-zh",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/op7418/humanizer-zh.git",
-      "skillPath": "SKILL.md",
-      "skillFolderHash": "91f3d394db8419c20d67ebe22a96cf8fee0a404b",
-      "installedAt": "2026-03-31T07:11:27.204Z",
-      "updatedAt": "2026-04-29T02:46:39.661Z"
     },
     "memos-skill": {
       "source": "WuYuStar/opencode-skills",
@@ -118,27 +91,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/hugohe3/ppt-master.git",
       "skillPath": "skills/ppt-master/SKILL.md",
-      "skillFolderHash": "dbb7d39a6b0d1b3b655112052b5ae00f1070f759",
+      "skillFolderHash": "c0fc3da68f071742694196d0a4c516d56931ac4e",
       "installedAt": "2026-04-04T11:19:19.484Z",
-      "updatedAt": "2026-04-29T02:49:28.925Z"
-    },
-    "crawl4ai": {
-      "source": "brettdavies/crawl4ai-skill",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/brettdavies/crawl4ai-skill.git",
-      "skillPath": "crawl4ai/SKILL.md",
-      "skillFolderHash": "cda599e109beb00142882600bcbb472a6675e56b",
-      "installedAt": "2026-04-29T02:36:32.377Z",
-      "updatedAt": "2026-04-29T02:50:09.972Z"
-    },
-    "ddgs-search": {
-      "source": "WuYuStar/opencode-skills",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/WuYuStar/opencode-skills.git",
-      "skillPath": "ddgs-search/SKILL.md",
-      "skillFolderHash": "727872a58e3702e9d600d118b454cd7f8fe6ad11",
-      "installedAt": "2026-04-29T02:36:32.380Z",
-      "updatedAt": "2026-04-29T02:36:32.380Z"
+      "updatedAt": "2026-05-18T08:43:08.198Z"
     },
     "md2pdf": {
       "source": "WuYuStar/opencode-skills",
@@ -154,9 +109,45 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/WuYuStar/opencode-skills.git",
       "skillPath": "pdf-skill/SKILL.md",
-      "skillFolderHash": "b2492c1df8b369802d18e762bcdedf762435f599",
+      "skillFolderHash": "f2df8574039bcd22b487f2f28798076b26215cb8",
       "installedAt": "2026-04-29T02:36:32.406Z",
-      "updatedAt": "2026-04-29T02:36:32.406Z"
+      "updatedAt": "2026-04-29T03:29:56.110Z"
+    },
+    "obsidian-bases": {
+      "source": "kepano/obsidian-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/kepano/obsidian-skills.git",
+      "skillPath": "skills/obsidian-bases/SKILL.md",
+      "skillFolderHash": "4bef60bb848bfb02b4172b552626d5741b0d4057",
+      "installedAt": "2026-05-09T10:54:16.070Z",
+      "updatedAt": "2026-05-09T10:54:16.070Z"
+    },
+    "obsidian-cli": {
+      "source": "kepano/obsidian-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/kepano/obsidian-skills.git",
+      "skillPath": "skills/obsidian-cli/SKILL.md",
+      "skillFolderHash": "96254a554e480359de7b685571876f2e7f9ba57d",
+      "installedAt": "2026-05-09T10:54:16.072Z",
+      "updatedAt": "2026-05-09T10:54:16.072Z"
+    },
+    "obsidian-markdown": {
+      "source": "kepano/obsidian-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/kepano/obsidian-skills.git",
+      "skillPath": "skills/obsidian-markdown/SKILL.md",
+      "skillFolderHash": "5caf5d9e7de204f3904216857545f2aa36bcfcac",
+      "installedAt": "2026-05-09T10:54:16.073Z",
+      "updatedAt": "2026-05-09T10:54:16.073Z"
+    },
+    "json-canvas": {
+      "source": "kepano/obsidian-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/kepano/obsidian-skills.git",
+      "skillPath": "skills/json-canvas/SKILL.md",
+      "skillFolderHash": "9df7971db7ffebf96f2a207840b9f4765aa11b04",
+      "installedAt": "2026-05-09T10:54:16.074Z",
+      "updatedAt": "2026-05-09T10:54:16.074Z"
     }
   },
   "dismissed": {

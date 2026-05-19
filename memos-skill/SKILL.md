@@ -1,18 +1,6 @@
 ---
 name: memos-skill
-description: |
-  管理和操作 Memos 笔记系统的完整功能。使用此 skill 当用户需要：
-  - 创建、查看、编辑、删除备忘录/笔记
-  - 搜索、过滤、排序备忘录列表
-  - 管理备忘录附件（上传、查看、删除）
-  - 管理备忘录标签
-  - 添加或管理评论
-  - 添加表情反应
-  - 设置备忘录可见性（私有、受保护、公开）
-  - 置顶或归档备忘录
-  - 创建分享链接
-  - 关联相关备忘录
-  无论用户是否明确提到"memos"或"备忘录"，只要涉及笔记管理都应使用此 skill。
+description: 管理和操作 Memos 笔记系统的完整功能（创建、查看、编辑、删除、搜索、标签、附件、评论、分享、可见性设置等）。无论用户说的是"memos"、"备忘录"、"笔记"、"记一下"、"帮我查一下笔记"，还是任何涉及笔记增删改查、标签管理、附件上传的场景，都应使用此 skill。用户可能不直接说"memos"，但只要涉及笔记管理操作，就应触发此 skill。
 compatibility: |
   需要 memos 服务器地址和访问令牌。
   支持 Memos v0.26.0+ 版本。
@@ -504,3 +492,13 @@ for memo in result['memos']:
     )
     print(f"已归档: {memo_id}")
 ```
+
+## 用户配置记录
+
+### Obsidian Vault 位置
+
+**用户指定的 Obsidian Vault 路径：**
+- Windows 路径：`D:\Obsidian\Obsidian Vault\WuYu`
+- WSL 路径：`/mnt/d/Obsidian/Obsidian Vault/WuYu`
+
+> 当用户要求将 Memos 内容导入 Obsidian 时，使用此路径而非自动检测的路径。

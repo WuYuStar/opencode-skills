@@ -1,6 +1,6 @@
 ---
 name: pdf-skill
-description: 当用户任务中涉及任何 PDF 文件操作、内容处理或格式转换时，**必须**使用此 skill。这包括但不限于：读取/查看 PDF 内容、提取文本/表格/公式/图片、将 PDF 转为 Markdown 或其他格式、合并多个 PDF、拆分 PDF 页面、旋转页面、添加水印、创建新 PDF、填写 PDF 表单、加密/解密 PDF、压缩/优化 PDF。无论任务是简单还是复杂，只要用户提到 .pdf 文件、PDF 文档，或需要对 PDF 进行任何处理（包括内容总结、信息搜索、数据提取、文本分析、OCR 识别），都务必先加载此 skill。如果用户要求对比多个 PDF、从 PDF 中查找特定信息、或基于 PDF 内容执行任何后续操作，也必须使用此 skill。
+description: 完整的 PDF 处理工具集，支持读取、提取、转换、合并、拆分、编辑、加密、压缩、OCR 等所有 PDF 操作。只要用户提到 .pdf 文件、PDF 文档、扫描件，或需要对 PDF 进行任何处理（查看内容、提取文本/表格/图片、转 Markdown、合并拆分、加解密、填表单、加/去水印、对比、压缩），都应使用此 skill。即使任务只是"帮我看一下这个PDF里写了什么"或"把这个pdf转成word"，也需要触发此 skill 来确保正确处理。
 ---
 
 # PDF 处理指南
@@ -216,15 +216,20 @@ pip install requests
 
 ### 基本用法
 ```bash
-# 本地文件解析
+# 本地文件解析（输出到 PDF 所在目录）
 python scripts/parse_by_file.py ./document.pdf
 
-# URL 解析
+# 指定输出目录
+python scripts/parse_by_file.py ./document.pdf --output_dir ./output
+
+# URL 解析（输出到当前目录）
 python scripts/parse_by_url.py https://example.com/doc.pdf
 
-# 小文件免 Token 解析
+# 小文件免 Token 解析（输出到 PDF 所在目录）
 python scripts/parse_by_agent_file.py ./small.pdf
 ```
+
+**注意**：本地文件解析默认将结果保存到 PDF 文件所在的目录，而非脚本所在目录。如需保存到其他位置，请使用 `--output_dir` 参数。
 
 ### 参数说明
 | 参数 | 说明 | 示例 |
