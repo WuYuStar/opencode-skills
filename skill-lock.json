@@ -45,9 +45,33 @@
       "skillFolderHash": "96254a554e480359de7b685571876f2e7f9ba57d",
       "installedAt": "2026-05-09T10:54:16.072Z",
       "updatedAt": "2026-05-09T10:54:16.072Z"
+    },
+    "smart-search": {
+      "source": "WuYuStar/opencode-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/WuYuStar/opencode-skills.git",
+      "skillPath": "smart-search/SKILL.md",
+      "skillFolderHash": "35855ce836f7ad86d5f0b29f09b081c49e8dc0d9",
+      "installedAt": "2026-05-19T08:21:45.572Z",
+      "updatedAt": "2026-05-19T08:21:45.572Z"
     }
   },
   "dismissed": {
     "findSkillsPrompt": true
-  }
+  },
+  "lastSelectedAgents": [
+    "amp",
+    "antigravity",
+    "cline",
+    "codex",
+    "cursor",
+    "deepagents",
+    "dexto",
+    "firebender",
+    "gemini-cli",
+    "github-copilot",
+    "kimi-cli",
+    "opencode",
+    "warp"
+  ]
 }
